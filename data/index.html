@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Drybox Control</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <h1>Drybox Control</h1>
+        </header>
+
+        <main>
+            <div class="card">
+                <h2>Status i Kontrola</h2>
+                <div class="status-grid">
+                    <div class="data-point"><strong>Temperatura:</strong> <span id="temp">--.-</span> &deg;C</div>
+                    <div class="data-point"><strong>Wilgotnosc:</strong> <span id="hum">--.-</span> %</div>
+                    <div class="data-point"><strong>Cel Temp:</strong> <span id="target-temp">--</span> &deg;C</div>
+                    <div class="data-point"><strong>Cel Wilg:</strong> <span id="target-hum">--</span> %</div>
+                </div>
+                <div class="status-icons">
+                    <div class="icon" id="icon-heater" title="Grzalka">🔥</div>
+                    <div class="icon" id="icon-fan-chamber" title="Wentylator Komory">⚙️</div>
+                    <div class="icon" id="icon-fan-psu" title="Wentylator Zasilacza">💨</div>
+                    <div class="icon" id="icon-cooling" title="Chlodzenie">❄️</div>
+                </div>
+                <div class="controls">
+                    <select id="profile-select">
+                        <option value="0">Profil: PLA</option>
+                        <option value="1">Profil: PETG</option>
+                        <option value="2">Profil: ABS</option>
+                        <option value="3">Profil: Wlasny</option>
+                    </select>
+                    <select id="mode-select">
+                        <option value="0">Tryb: Czasowy</option>
+                        <option value="1">Tryb: Wilgotnosc</option>
+                        <option value="2">Tryb: Ciagly</option>
+                    </select>
+                    <button id="start-btn">Start</button>
+                    <button id="stop-btn">Stop</button>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>Wykres na Zywo</h2>
+                <canvas id="liveChart"></canvas>
+            </div>
+
+            <div class="card details-card">
+                <h2>Widok Szczegolowy</h2>
+                <div class="details-grid">
+                    <div class="sensor-layout">
+                        <h3>Temperatury DS18B20</h3>
+                        <div class="dryer-box">
+                            <div class="sensor s1" title="Przod Lewy">K1: <span id="ds1">--.-</span></div>
+                            <div class="sensor s4" title="Przod Prawy">K4: <span id="ds4">--.-</span></div>
+                            <div class="sensor s-psu" title="Zasilacz">PSU: <span id="ds3">--.-</span></div>
+                            <div class="sensor s2" title="Tyl Lewy">K2: <span id="ds2">--.-</span></div>
+                            <div class="sensor s3" title="Tyl Prawy">K3: <span id="ds0">--.-</span></div>
+                        </div>
+                    </div>
+                    <div class="spool-status">
+                        <h3>Status Rolek</h3>
+                        <div id="spool-grid" class="spool-grid">
+                            </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        let chart;
+        let websocket;
+
+        const SPOOL_TYPES = ["Pusty", "PLA", "PETG", "ABS", "ASA", "TPU", "Inny"];
+        const SPOOL_COLORS = [
+            { name: 'Brak', hex: 'transparent' }, { name: 'Bialy', hex: '#FFFFFF' },
+            { name: 'Czarny', hex: '#000000' }, { name: 'Szary', hex: '#808080' },
+            { name: 'Czerwony', hex: '#FF0000' }, { name: 'Zielony', hex: '#008000' },
+            { name: 'Niebieski', hex: '#0000FF' }, { name: 'Zolty', hex: '#FFFF00' },
+            { name: 'Pomaranczowy', hex: '#FFA500' }, { name: 'Fioletowy', hex: '#800080' },
+            { name: 'Naturalny', hex: '#F1E9D2' }, { name: 'Srebrny', hex: '#C0C0C0' },
+            { name: 'Zloty', hex: '#FFD700' }, { name: 'Multikolor', hex: 'conic-gradient(red, yellow, lime, aqua, blue, magenta, red)' }
+        ];
+
+        function initChart() {
+            const ctx = document.getElementById('liveChart').getContext('2d');
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    datasets: [{
+                        label: 'Temperatura', yAxisID: 'yTemp', borderColor: 'rgb(255, 99, 132)', tension: 0.1, data: []
+                    }, {
+                        label: 'Wilgotnosc', yAxisID: 'yTemp', borderColor: 'rgb(54, 162, 235)', tension: 0.1, data: []
+                    }, {
+                        label: 'Moc Grzalki', yAxisID: 'yPower', borderColor: 'rgb(255, 206, 86)', tension: 0.1, data: []
+                    }]
+                },
+                options: {
+                    scales: {
+                        x: { type: 'time', time: { unit: 'minute' }, title: { display: true, text: 'Czas' } },
+                        yTemp: { type: 'linear', position: 'left', min: 0, max: 80, title: { display: true, text: 'Temp (°C) / Wilg (%)' } },
+                        yPower: { type: 'linear', position: 'right', min: 0, max: 260, title: { display: true, text: 'Moc Grzalki (0-255)' }, grid: { drawOnChartArea: false } }
+                    },
+                    animation: { duration: 250 }
+                }
+            });
+        }
+
+        function updateUI(data) {
+            document.getElementById('temp').textContent = data.temp.toFixed(1);
+            document.getElementById('hum').textContent = data.hum.toFixed(1);
+            document.getElementById('mode').textContent = data.mode;
+            document.getElementById('target-temp').textContent = data.target_temp.toFixed(1);
+            document.getElementById('target-hum').textContent = data.target_hum.toFixed(0);
+
+            document.getElementById('icon-heater').classList.toggle('active', data.icon_heater);
+            document.getElementById('icon-fan-chamber').classList.toggle('active', data.icon_fan_chamber);
+            document.getElementById('icon-fan-psu').classList.toggle('active', data.icon_fan_psu);
+            document.getElementById('icon-cooling').classList.toggle('active', data.icon_cooling);
+
+            document.getElementById('ds0').textContent = data.ds0.toFixed(1);
+            document.getElementById('ds1').textContent = data.ds1.toFixed(1);
+            document.getElementById('ds2').textContent = data.ds2.toFixed(1);
+            document.getElementById('ds3').textContent = data.ds3.toFixed(1);
+            document.getElementById('ds4').textContent = data.ds4.toFixed(1);
+            
+            const spoolGrid = document.getElementById('spool-grid');
+            spoolGrid.innerHTML = '';
+            for (let i = 0; i < 4; i++) {
+                const spool = data.spools[i];
+                const type = SPOOL_TYPES[spool.type] || 'Brak';
+                const color = SPOOL_COLORS[spool.color] || { name: 'Brak', hex: 'transparent'};
+
+                const column = document.createElement('div');
+                column.className = 'spool-column';
+                
+                let colorDotHTML = `<span class="color-dot" style="background: ${color.hex};"></span>`;
+                if (type === 'Pusty') {
+                    colorDotHTML = `<span class="color-dot empty"></span>`;
+                }
+
+                column.innerHTML = `
+                    <div class="spool-id">${i + 1}</div>
+                    <div class="spool-type">${type}</div>
+                    <div class="spool-color">
+                        ${colorDotHTML}
+                        <span>${color.name}</span>
+                    </div>`;
+                spoolGrid.appendChild(column);
+            }
+
+            const now = Date.now();
+            chart.data.datasets[0].data.push({ x: now, y: data.temp });
+            chart.data.datasets[1].data.push({ x: now, y: data.hum });
+            chart.data.datasets[2].data.push({ x: now, y: data.pid_power });
+
+            const twoHoursAgo = now - (2 * 60 * 60 * 1000);
+            chart.options.scales.x.min = twoHoursAgo;
+            chart.options.scales.x.max = now;
+
+            chart.update();
+        }
+
+        function connectWebSocket() {
+            console.log("Laczenie z WebSocket...");
+            const gateway = `ws://${window.location.hostname}/ws`;
+            websocket = new WebSocket(gateway);
+
+            websocket.onopen = () => console.log("Polaczono z WebSocket.");
+            websocket.onclose = () => {
+                console.log("Rozlaczono. Proba ponownego polaczenia za 2 sekundy.");
+                setTimeout(connectWebSocket, 2000);
+            };
+            websocket.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                updateUI(data);
+            };
+        }
+
+        window.addEventListener('load', () => {
+            initChart();
+            connectWebSocket();
+
+            document.getElementById('start-btn').addEventListener('click', () => {
+                const profile = document.getElementById('profile-select').value;
+                const mode = document.getElementById('mode-select').value;
+                websocket.send(`START:${profile}:${mode}`);
+                console.log(`Wysłano START, profil: ${profile}, tryb: ${mode}`);
+            });
+
+            document.getElementById('stop-btn').addEventListener('click', () => {
+                websocket.send('STOP');
+                console.log("Wysłano STOP");
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,10 +1,10 @@
 // =================================================================
 // Plik:          ActuatorManager.cpp
-// Wersja:        5.11
+// Wersja:        5.12
 // Data:          13.10.2025
 // Opis Zmian:
-//  - Usunięto linię nadpisującą logiczny stan `isHeaterOn`,
-//    aby rozwiązać problem migającej ikony i diody LED.
+//  - OSTATECZNA POPRAWKA: Usunięto linię nadpisującą logiczny
+//    stan `isHeaterOn`, aby rozwiązać problem migającej ikony.
 // =================================================================
 #include <Arduino.h>
 #include "ActuatorManager.h"
@@ -40,6 +40,7 @@ void ActuatorManager::update(DryerState& state) {
         return;
     }
 
+    // Sterowanie grzałką (LOGIKA CZASOWO-PROPORCJONALNA)
     if (state.currentMode != MODE_IDLE && !state.isInAlarmState) {
         unsigned long now = millis();
         if (now - windowStartTime > windowSize) {
@@ -59,6 +60,7 @@ void ActuatorManager::update(DryerState& state) {
     // state.isHeaterOn = isHeaterOn_internal; // TA BŁĘDNA LINIA ZOSTAŁA USUNIĘTA
 
 
+    // Sterowanie wentylatorem komory
     if (state.isBoostActive) {
         setChamberFan(true);
     } else if (state.currentMode != MODE_IDLE) {
@@ -78,6 +80,8 @@ void ActuatorManager::update(DryerState& state) {
     }
     state.isChamberFanOn = isChamberFanOn_internal;
 
+
+    // Reszta logiki
     float p_on = state.psuFanOnTemp;
     float p_off = p_on - state.psuFanOffHysteresis;
     if (state.ds18b20_temps[3] > p_on) {

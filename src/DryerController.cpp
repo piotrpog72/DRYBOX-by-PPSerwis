@@ -1,29 +1,24 @@
 // =================================================================
 // Plik:          DryerController.cpp
-// Wersja:        5.12 (Ostateczna Stabilizacja)
-// Data:          13.10.2025
+// Wersja:        5.20 (Skonsolidowana)
 // Opis Zmian:
-//  - Usunięto WiFiManager z procesu startowego (begin()), aby
-//    uniknąć konfliktu i uszkodzenia obiektu serwera.
-//  - Przywrócono standardową, nieblokującą inicjalizację WiFi.
+//  - Przepisano całą logikę sieciową na standardowy WebServer.
+//  - Usunięto WebSockets na rzecz AJAX Polling.
+//  - Dodano handleClient() w pętli update().
 // =================================================================
 #include "DryerController.h"
 #include <Arduino.h>
 #include <LittleFS.h>
 #include <ArduinoJson.h>
 #include <WiFi.h>
-#include <AsyncTCP.h>
-#include <ESPAsyncWebServer.h>
-#include <ESPAsyncWiFiManager.h>
+#include <WiFiManager.h>
 #include <ArduinoOTA.h>
 #include "lists.h"
 
 DryerController::DryerController() :
-  pid(&pidInput, &pidOutput, &pidSetpoint, currentState.pid_kp, currentState.pid_ki, currentState.pid_kd, DIRECT)
-{
-    server = new AsyncWebServer(80);
-    ws = new AsyncWebSocket("/ws");
-}
+  pid(&pidInput, &pidOutput, &pidSetpoint, currentState.pid_kp, currentState.pid_ki, currentState.pid_kd, DIRECT),
+  server(80)
+{}
 
 void DryerController::begin() {
     Serial.begin(115200); Serial.println("DryerController: Inicjalizacja " FW_VERSION "...");
@@ -38,8 +33,13 @@ void DryerController::begin() {
     
     if (currentState.isWifiEnabled) {
         WiFi.mode(WIFI_STA);
-        setupWebServer(); 
-        WiFi.begin(); // Używamy standardowego, nieblokującego startu.
+        WiFiManager wm;
+        if (wm.autoConnect("Drybox_Setup")) {
+            Serial.println("Polaczono z siecia przez WiFiManager.");
+            setupWebServer();
+        } else {
+            Serial.println("Nie udalo sie polaczyc z WiFi.");
+        }
     }
 
     currentState.sensorsOk = sensorManager.areSensorsFound();
@@ -56,20 +56,11 @@ void DryerController::begin() {
 
 void DryerController::startWifiConfig() {
     displayManager.showWifiConfigScreen();
-    AsyncWiFiManager wifiManager(server, nullptr);
-    wifiManager.startConfigPortal("Drybox_Setup");
+    WiFiManager wm;
+    wm.startConfigPortal("Drybox_Setup");
 }
 
 void DryerController::handleWifi() {
-    if (!currentState.isWifiEnabled) {
-        if (currentState.isWifiConnected) {
-            WiFi.disconnect(true);
-            ArduinoOTA.end();
-            currentState.isWifiConnected = false;
-        }
-        return;
-    }
-
     if (WiFi.status() == WL_CONNECTED) {
         if (!currentState.isWifiConnected) {
             currentState.isWifiConnected = true;
@@ -90,7 +81,11 @@ void DryerController::handleWifi() {
 }
 
 void DryerController::update() {
-    handleWifi();
+    if(currentState.isWifiEnabled) {
+        server.handleClient();
+        handleWifi();
+    }
+    
     unsigned long currentTime = millis();
     inputManager.update(); 
     processUserInput();
@@ -119,29 +114,10 @@ void DryerController::update() {
         if (currentState.currentMode != MODE_IDLE && !currentState.isInAlarmState) {
             pidInput = currentState.avgChamberTemp;
             pidSetpoint = currentState.targetTemp;
-
-            bool boostTimeExceeded = (millis() - currentState.dryingStartTime) > (currentState.boostMaxTime_min * 60000UL);
-            bool boostTempReached = (pidInput >= currentState.boostTempThreshold);
-            bool psuTooHot = (currentState.ds18b20_temps[3] >= currentState.boostPsuTempLimit);
-            
-            if (currentState.isBoostActive && (boostTimeExceeded || boostTempReached || psuTooHot)) {
-                currentState.isBoostActive = false;
-            }
-
-            if (currentState.isBoostActive) {
-                currentState.pidOutput = 255;
-            } else if (pidInput < pidSetpoint) {
-                currentState.pidOutput = (currentState.rampPowerPercent * 255) / 100;
-            } else {
-                pid.Compute();
-                currentState.pidOutput = pidOutput;
-            }
-            currentState.isHeaterOn = (currentState.pidOutput > 0);
-
+            pid.Compute();
+            currentState.pidOutput = pidOutput;
         } else {
             currentState.pidOutput = 0;
-            currentState.isHeaterOn = false;
-            currentState.isBoostActive = false;
         }
         
         actuatorManager.update(currentState);
@@ -169,114 +145,96 @@ void DryerController::update() {
     }
 
     displayManager.update(currentState, profiles[currentState.currentProfileType].name);
-
-    if (ws) {
-        ws->cleanupClients();
-        static unsigned long lastWsTime = 0;
-        if (ws->count() > 0 && millis() - lastWsTime > 2000) {
-            lastWsTime = millis();
-            DynamicJsonDocument doc(1024);
-            doc["temp"] = currentState.avgChamberTemp;
-            doc["hum"] = currentState.dhtHum;
-            doc["target_temp"] = currentState.targetTemp;
-            doc["target_hum"] = currentState.targetHumidity;
-            
-            String modeStr;
-            switch (currentState.currentMode) {
-                case MODE_IDLE: modeStr = "Czuwanie"; break;
-                case MODE_TIMED: modeStr = "Czasowy"; break;
-                case MODE_HUMIDITY_TARGET: modeStr = "Wilgotnosc"; break;
-                case MODE_CONTINUOUS: modeStr = "Ciagly"; break;
-            }
-            doc["mode"] = modeStr;
-
-            doc["icon_heater"] = currentState.isHeaterOn;
-            doc["icon_fan_chamber"] = currentState.isChamberFanOn;
-            doc["icon_fan_psu"] = currentState.isPsuFanOn;
-            doc["icon_cooling"] = currentState.isHeaterFanOn && !currentState.isHeaterOn;
-            
-            doc["ds0"] = currentState.ds18b20_temps[0];
-            doc["ds1"] = currentState.ds18b20_temps[1];
-            doc["ds2"] = currentState.ds18b20_temps[2];
-            doc["ds3"] = currentState.ds18b20_temps[3];
-            doc["ds4"] = currentState.ds18b20_temps[4];
-            
-            doc["pid_power"] = currentState.pidOutput;
-
-            JsonArray spools = doc.createNestedArray("spools");
-            for (int i=0; i<4; i++) {
-                JsonObject spool = spools.createNestedObject();
-                spool["type"] = currentState.spools[i].typeIndex;
-                spool["color"] = currentState.spools[i].colorIndex;
-            }
-
-            String json;
-            serializeJson(doc, json);
-            ws->textAll(json);
-        }
-    }
-}
-
-void DryerController::onWsEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len) {
-    if (type == WS_EVT_CONNECT) {
-        Serial.printf("WebSocket client #%u connected from %s\n", client->id(), client->remoteIP().toString().c_str());
-    } else if (type == WS_EVT_DISCONNECT) {
-        Serial.printf("WebSocket client #%u disconnected\n", client->id());
-    } else if (type == WS_EVT_DATA) {
-        AwsFrameInfo *info = (AwsFrameInfo*)arg;
-        if (info->final && info->index == 0 && info->len == len && info->opcode == WS_TEXT) {
-            data[len] = 0;
-            String command = (char*)data;
-            Serial.printf("Odebrano komendę: %s\n", command.c_str());
-
-            if (command == "STOP") {
-                currentState.currentMode = MODE_IDLE;
-            } else if (command.startsWith("START:")) {
-                int firstColon = command.indexOf(':');
-                int secondColon = command.indexOf(':', firstColon + 1);
-                
-                int profileIndex = command.substring(firstColon + 1, secondColon).toInt();
-                int modeIndex = command.substring(secondColon + 1).toInt();
-                
-                currentState.currentProfileType = (ProfileType)profileIndex;
-                currentState.targetTemp = profiles[profileIndex].temp;
-                currentState.targetHumidity = profiles[profileIndex].humidity;
-
-                switch(modeIndex) {
-                    case 0: // Czasowy
-                        currentState.currentMode = MODE_TIMED;
-                        break;
-                    case 1: // Wilgotność
-                        currentState.currentMode = MODE_HUMIDITY_TARGET;
-                        break;
-                    case 2: // Ciągły
-                        currentState.currentMode = MODE_CONTINUOUS;
-                        break;
-                }
-                currentState.dryingStartTime = millis();
-                currentState.startingHumidity = currentState.dhtHum;
-                currentState.heaterTotalOnTime_ms = 0;
-                lastHeaterUpdateTime = millis();
-                currentState.isBoostActive = true;
-            }
-        }
-    }
 }
 
 void DryerController::setupWebServer() {
-    ws->onEvent([this](AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len){
-        this->onWsEvent(server, client, type, arg, data, len);
-    });
-    server->addHandler(ws);
-
-    server->serveStatic("/", LittleFS, "/").setDefaultFile("index.html");
-
-    server->onNotFound([](AsyncWebServerRequest *request) {
-        request->send(404, "text/plain", "Not found");
-    });
-
-    server->begin();
+    server.on("/", HTTP_GET, [this](){ handleFileRequest("/index.html", "text/html"); });
+    server.on("/style.css", HTTP_GET, [this](){ handleFileRequest("/style.css", "text/css"); });
+    server.on("/data", HTTP_GET, [this](){ handleDataRequest(); });
+    server.on("/command", HTTP_GET, [this](){ handleCommandRequest(); });
+    server.onNotFound([this](){ handleNotFound(); });
+    server.begin();
     Serial.println("Serwer HTTP uruchomiony");
+}
+
+void DryerController::handleFileRequest(String path, String contentType) {
+    if (LittleFS.exists(path)) {
+        File file = LittleFS.open(path, "r");
+        server.streamFile(file, contentType);
+        file.close();
+    } else {
+        handleNotFound();
+    }
+}
+
+void DryerController::handleDataRequest() {
+    DynamicJsonDocument doc(1024);
+    doc["fw_version"] = FW_VERSION;
+    doc["temp"] = currentState.avgChamberTemp;
+    doc["hum"] = currentState.dhtHum;
+    doc["target_temp"] = currentState.targetTemp;
+    doc["target_hum"] = currentState.targetHumidity;
+    String modeStr;
+    switch (currentState.currentMode) {
+        case MODE_IDLE: modeStr = "Czuwanie"; break;
+        case MODE_TIMED: modeStr = "Czasowy"; break;
+        case MODE_HUMIDITY_TARGET: modeStr = "Wilgotnosc"; break;
+        case MODE_CONTINUOUS: modeStr = "Ciagly"; break;
+    }
+    doc["mode"] = modeStr;
+    doc["icon_heater"] = currentState.isHeaterOn;
+    doc["icon_fan_chamber"] = currentState.isChamberFanOn;
+    doc["icon_fan_psu"] = currentState.isPsuFanOn;
+    doc["ds0"] = currentState.ds18b20_temps[0];
+    doc["ds1"] = currentState.ds18b20_temps[1];
+    doc["ds2"] = currentState.ds18b20_temps[2];
+    doc["ds3"] = currentState.ds18b20_temps[3];
+    doc["ds4"] = currentState.ds18b20_temps[4];
+    doc["pid_power"] = currentState.pidOutput;
+    JsonArray spools = doc.createNestedArray("spools");
+    for (int i=0; i<4; i++) {
+        JsonObject spool = spools.createNestedObject();
+        spool["type"] = currentState.spools[i].typeIndex;
+        spool["color"] = currentState.spools[i].colorIndex;
+    }
+    String json;
+    serializeJson(doc, json);
+    server.send(200, "application/json", json);
+}
+
+void DryerController::handleCommandRequest() {
+    if (server.hasArg("cmd")) {
+        String command = server.arg("cmd");
+        Serial.printf("Odebrano komendę: %s\n", command.c_str());
+
+        if (command == "STOP") {
+            currentState.currentMode = MODE_IDLE;
+        } else if (command.startsWith("START:")) {
+            int firstColon = command.indexOf(':');
+            int secondColon = command.indexOf(':', firstColon + 1);
+            int profileIndex = command.substring(firstColon + 1, secondColon).toInt();
+            int modeIndex = command.substring(secondColon + 1).toInt();
+            currentState.currentProfileType = (ProfileType)profileIndex;
+            currentState.targetTemp = profiles[profileIndex].temp;
+            currentState.targetHumidity = profiles[profileIndex].humidity;
+            switch(modeIndex) {
+                case 0: currentState.currentMode = MODE_TIMED; break;
+                case 1: currentState.currentMode = MODE_HUMIDITY_TARGET; break;
+                case 2: currentState.currentMode = MODE_CONTINUOUS; break;
+            }
+            currentState.dryingStartTime = millis();
+            currentState.startingHumidity = currentState.dhtHum;
+            currentState.heaterTotalOnTime_ms = 0;
+            lastHeaterUpdateTime = millis();
+        }
+        server.send(200, "text/plain", "OK");
+    } else {
+        server.send(400, "text/plain", "Bad Request");
+    }
+}
+
+void DryerController::handleNotFound() {
+    server.send(404, "text/plain", "Not Found");
 }
 
 void DryerController::processUserInput() {
@@ -402,7 +360,6 @@ void DryerController::processUserInput() {
                     currentState.startingHumidity = currentState.dhtHum;
                     currentState.heaterTotalOnTime_ms = 0;
                     lastHeaterUpdateTime = millis();
-                    currentState.isBoostActive = true;
                     currentState.currentMenuState = SCREEN_MAIN;
                 }
                 break;
@@ -411,7 +368,6 @@ void DryerController::processUserInput() {
                 if (currentState.dryingDurationMinutes > 0) {
                     currentState.currentMode = MODE_TIMED;
                     currentState.dryingStartTime = millis();
-                    currentState.isBoostActive = true;
                     currentState.currentMenuState = SCREEN_MAIN;
                 }
                 break;

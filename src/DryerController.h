@@ -1,14 +1,13 @@
 // =================================================================
 // Plik:          DryerController.h
-// Wersja:        5.10
+// Wersja:        5.20
 // Opis Zmian:
-//  - Wersja skonsolidowana, bez zmian w deklaracjach.
+//  - Zmieniono AsyncWebServer na standardowy WebServer.
 // =================================================================
 #ifndef DRYERCONTROLLER_H
 #define DRYERCONTROLLER_H
 
-#include <ESPAsyncWebServer.h>
-
+#include <WebServer.h>
 #include "config.h"
 #include "DryerState.h"
 #include "SensorManager.h"
@@ -36,10 +35,7 @@ private:
   double pidSetpoint, pidInput, pidOutput;
   PID pid;
 
-  AsyncWebServer *server;
-  AsyncWebSocket *ws;
-  
-  uint8_t lastSentHeaterPower = 0;
+  WebServer server;
 
   void handleWifi();
   void startWifiConfig();
@@ -48,7 +44,9 @@ private:
   void loadSettings();
   void saveSettings();
   void setupWebServer();
-  void onWsEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len);
-  void setHeaterPowerWithCheck(uint8_t power);
+  void handleDataRequest();
+  void handleCommandRequest();
+  void handleFileRequest(String path, String contentType);
+  void handleNotFound();
 };
 #endif

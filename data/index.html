@@ -9,12 +9,10 @@
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
 </head>
 <body>
-
     <div class="container">
         <header>
-            <h1>Drybox Control</h1>
+            <h1 id="header-title">Drybox Control</h1>
         </header>
-
         <main>
             <div class="card">
                 <h2>Status i Kontrola</h2>
@@ -28,7 +26,6 @@
                     <div class="icon" id="icon-heater" title="Grzalka">🔥</div>
                     <div class="icon" id="icon-fan-chamber" title="Wentylator Komory">⚙️</div>
                     <div class="icon" id="icon-fan-psu" title="Wentylator Zasilacza">💨</div>
-                    <div class="icon" id="icon-cooling" title="Chlodzenie">❄️</div>
                 </div>
                 <div class="controls">
                     <select id="profile-select">
@@ -46,12 +43,10 @@
                     <button id="stop-btn">Stop</button>
                 </div>
             </div>
-
             <div class="card">
                 <h2>Wykres na Zywo</h2>
                 <canvas id="liveChart"></canvas>
             </div>
-
             <div class="card details-card">
                 <h2>Widok Szczegolowy</h2>
                 <div class="details-grid">
@@ -67,18 +62,14 @@
                     </div>
                     <div class="spool-status">
                         <h3>Status Rolek</h3>
-                        <div id="spool-grid" class="spool-grid">
-                            </div>
+                        <div id="spool-grid" class="spool-grid"></div>
                     </div>
                 </div>
             </div>
         </main>
     </div>
-
     <script>
         let chart;
-        let websocket;
-
         const SPOOL_TYPES = ["Pusty", "PLA", "PETG", "ABS", "ASA", "TPU", "Inny"];
         const SPOOL_COLORS = [
             { name: 'Brak', hex: 'transparent' }, { name: 'Bialy', hex: '#FFFFFF' },
@@ -94,20 +85,16 @@
             const ctx = document.getElementById('liveChart').getContext('2d');
             chart = new Chart(ctx, {
                 type: 'line',
-                data: {
-                    datasets: [{
-                        label: 'Temperatura', yAxisID: 'yTemp', borderColor: 'rgb(255, 99, 132)', tension: 0.1, data: []
-                    }, {
-                        label: 'Wilgotnosc', yAxisID: 'yTemp', borderColor: 'rgb(54, 162, 235)', tension: 0.1, data: []
-                    }, {
-                        label: 'Moc Grzalki', yAxisID: 'yPower', borderColor: 'rgb(255, 206, 86)', tension: 0.1, data: []
-                    }]
-                },
+                data: { datasets: [
+                    { label: 'Temperatura', yAxisID: 'yTemp', borderColor: 'rgb(255, 99, 132)', tension: 0.1, data: [] },
+                    { label: 'Wilgotnosc', yAxisID: 'yTemp', borderColor: 'rgb(54, 162, 235)', tension: 0.1, data: [] },
+                    { label: 'Moc', yAxisID: 'yPower', borderColor: 'rgb(255, 206, 86)', tension: 0.1, data: [] }
+                ]},
                 options: {
                     scales: {
                         x: { type: 'time', time: { unit: 'minute' }, title: { display: true, text: 'Czas' } },
                         yTemp: { type: 'linear', position: 'left', min: 0, max: 80, title: { display: true, text: 'Temp (°C) / Wilg (%)' } },
-                        yPower: { type: 'linear', position: 'right', min: 0, max: 260, title: { display: true, text: 'Moc Grzalki (0-255)' }, grid: { drawOnChartArea: false } }
+                        yPower: { type: 'linear', position: 'right', min: 0, max: 260, title: { display: true, text: 'Moc (0-255)' }, grid: { drawOnChartArea: false } }
                     },
                     animation: { duration: 250 }
                 }
@@ -115,17 +102,14 @@
         }
 
         function updateUI(data) {
+            document.getElementById('header-title').textContent = 'Drybox ' + data.fw_version;
             document.getElementById('temp').textContent = data.temp.toFixed(1);
             document.getElementById('hum').textContent = data.hum.toFixed(1);
-            document.getElementById('mode').textContent = data.mode;
             document.getElementById('target-temp').textContent = data.target_temp.toFixed(1);
             document.getElementById('target-hum').textContent = data.target_hum.toFixed(0);
-
             document.getElementById('icon-heater').classList.toggle('active', data.icon_heater);
             document.getElementById('icon-fan-chamber').classList.toggle('active', data.icon_fan_chamber);
             document.getElementById('icon-fan-psu').classList.toggle('active', data.icon_fan_psu);
-            document.getElementById('icon-cooling').classList.toggle('active', data.icon_cooling);
-
             document.getElementById('ds0').textContent = data.ds0.toFixed(1);
             document.getElementById('ds1').textContent = data.ds1.toFixed(1);
             document.getElementById('ds2').textContent = data.ds2.toFixed(1);
@@ -138,22 +122,11 @@
                 const spool = data.spools[i];
                 const type = SPOOL_TYPES[spool.type] || 'Brak';
                 const color = SPOOL_COLORS[spool.color] || { name: 'Brak', hex: 'transparent'};
-
                 const column = document.createElement('div');
                 column.className = 'spool-column';
-                
                 let colorDotHTML = `<span class="color-dot" style="background: ${color.hex};"></span>`;
-                if (type === 'Pusty') {
-                    colorDotHTML = `<span class="color-dot empty"></span>`;
-                }
-
-                column.innerHTML = `
-                    <div class="spool-id">${i + 1}</div>
-                    <div class="spool-type">${type}</div>
-                    <div class="spool-color">
-                        ${colorDotHTML}
-                        <span>${color.name}</span>
-                    </div>`;
+                if (type === 'Pusty') { colorDotHTML = `<span class="color-dot empty"></span>`; }
+                column.innerHTML = `<div class="spool-id">${i + 1}</div><div class="spool-type">${type}</div><div class="spool-color">${colorDotHTML}<span>${color.name}</span></div>`;
                 spoolGrid.appendChild(column);
             }
 
@@ -161,44 +134,40 @@
             chart.data.datasets[0].data.push({ x: now, y: data.temp });
             chart.data.datasets[1].data.push({ x: now, y: data.hum });
             chart.data.datasets[2].data.push({ x: now, y: data.pid_power });
-
             const twoHoursAgo = now - (2 * 60 * 60 * 1000);
             chart.options.scales.x.min = twoHoursAgo;
             chart.options.scales.x.max = now;
-
             chart.update();
         }
 
-        function connectWebSocket() {
-            console.log("Laczenie z WebSocket...");
-            const gateway = `ws://${window.location.hostname}/ws`;
-            websocket = new WebSocket(gateway);
+        async function fetchData() {
+            try {
+                const response = await fetch('/data');
+                if (response.ok) {
+                    const data = await response.json();
+                    updateUI(data);
+                } else { console.error('Błąd pobierania danych: ', response.status); }
+            } catch (error) { console.error('Błąd sieci: ', error); }
+        }
 
-            websocket.onopen = () => console.log("Polaczono z WebSocket.");
-            websocket.onclose = () => {
-                console.log("Rozlaczono. Proba ponownego polaczenia za 2 sekundy.");
-                setTimeout(connectWebSocket, 2000);
-            };
-            websocket.onmessage = (event) => {
-                const data = JSON.parse(event.data);
-                updateUI(data);
-            };
+        async function sendCommand(command) {
+            try {
+                await fetch('/command?' + new URLSearchParams({ cmd: command }));
+            } catch (error) { console.error('Błąd wysyłania komendy: ', error); }
         }
 
         window.addEventListener('load', () => {
             initChart();
-            connectWebSocket();
+            fetchData(); 
+            setInterval(fetchData, 2000);
 
             document.getElementById('start-btn').addEventListener('click', () => {
                 const profile = document.getElementById('profile-select').value;
                 const mode = document.getElementById('mode-select').value;
-                websocket.send(`START:${profile}:${mode}`);
-                console.log(`Wysłano START, profil: ${profile}, tryb: ${mode}`);
+                sendCommand(`START:${profile}:${mode}`);
             });
-
             document.getElementById('stop-btn').addEventListener('click', () => {
-                websocket.send('STOP');
-                console.log("Wysłano STOP");
+                sendCommand('STOP');
             });
         });
     </script>

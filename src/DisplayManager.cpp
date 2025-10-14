@@ -266,9 +266,11 @@ void DisplayManager::updateInteractiveDisplay(const DryerState& s, const String&
                 current_icon_x -= (icon_w + icon_pad);
 
                 if (s.isHeaterOn) {
-                    interactiveGcd.drawGlyph(current_icon_x, 15, 0xA8);
-                } else if (s.isHeaterFanOn) {
-                    interactiveGcd.drawGlyph(current_icon_x, 15, 0x48);
+                         // Zawsze pokazuj płomyk, gdy program jest w trybie grzania
+                         interactiveGcd.drawGlyph(current_icon_x, 15, 0x9F);
+                    } else if (s.isHeaterFanOn && s.currentMode == MODE_IDLE) {
+                        // Ikonę schładzania pokazuj TYLKO, gdy proces jest zakończony, a wentylator jeszcze stygnie
+                          interactiveGcd.drawGlyph(current_icon_x, 15, 0x48);
                 }
                 current_icon_x -= (icon_w + icon_pad);
 

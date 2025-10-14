@@ -1,15 +1,16 @@
 // =================================================================
 // Plik:          config.h
-// Wersja:        5.10
+// Wersja:        5.20
 // Opis Zmian:
 //  - Podniesienie numeru wersji FW_VERSION.
 //  - Dodano domyślne stałe dla nowej logiki grzania (Boost/Rampa).
+//  - naprawiony serwer WWWW
 // =================================================================
 #ifndef CONFIG_H
 #define CONFIG_H
 #include <DallasTemperature.h>
 
-#define FW_VERSION "v5.10" // Wersja z zaawansowanym sterowaniem grzaniem
+#define FW_VERSION "v5.20" // Wersja z zaawansowanym sterowaniem grzaniem
 #define I2C_SDA_PIN 21
 #define I2C_SCL_PIN 22
 #define GLCD_CLK_PIN   33

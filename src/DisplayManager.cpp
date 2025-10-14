@@ -1,6 +1,6 @@
 // =================================================================
 // Plik:          DisplayManager.cpp
-// Wersja:        5.10
+// Wersja:        5.20
 // Opis Zmian:
 //  - Dodano nowe opcje do menu "Ustawienia Zaawansowane".
 // =================================================================

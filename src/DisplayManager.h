@@ -1,3 +1,9 @@
+// =================================================================
+// Plik:          DisplayManager.h
+// Wersja:        5.20
+// Opis Zmian:
+//  - Dodano nowe opcje do menu "Ustawienia Zaawansowane".
+// =================================================================
 #ifndef DISPLAYMANAGER_H
 #define DISPLAYMANAGER_H
 

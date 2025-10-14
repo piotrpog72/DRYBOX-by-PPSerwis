@@ -1,6 +1,6 @@
 /*
     Projekt: Suszarka do filamentu 3D
-    Wersja: v5.00 
+    Wersja: v5.20 
     Architektura Page Buffer
     stabilne działające WiFi i OTA
     zmiana sposobu wyświetlania i układu plików
@@ -10,7 +10,7 @@
     poprrawka menu głównego  - funkcja powrót do ekranu głównego
     menu testów komponentów
     regulacja kontrastu ekranu
-    dodany PID
+    dodany softPID
     WWW
 */
 #include <Arduino.h>

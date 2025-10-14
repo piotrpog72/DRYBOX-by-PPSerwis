@@ -1,7 +1,7 @@
 // =================================================================
 // Plik:          ActuatorManager.cpp
-// Wersja:        5.12
-// Data:          13.10.2025
+// Wersja:        5.20
+// Data:          15.10.2025
 // Opis Zmian:
 //  - OSTATECZNA POPRAWKA: Usunięto linię nadpisującą logiczny
 //    stan `isHeaterOn`, aby rozwiązać problem migającej ikony.

@@ -1,4 +1,9 @@
-//InputManager.h
+// =================================================================
+// Plik:          InputManager.h
+// Wersja:        5.20
+// Opis Zmian:
+//  - Dodano nowe opcje do menu "Ustawienia Zaawansowane".
+// =================================================================
 #ifndef INPUTMANAGER_H
 #define INPUTMANAGER_H
 #include <Arduino.h> 

@@ -1,10 +1,11 @@
 // =================================================================
 // Plik:          DryerController.cpp
-// Wersja:        5.10 (Skonsolidowana, Poprawiona)
+// Wersja:        5.12 (Ostateczna Stabilizacja)
 // Data:          13.10.2025
 // Opis Zmian:
-//  - Przywrócenie pełnej, kompletnej wersji z działającą architekturą
-//    serwera WWW i pełną implementacją logiki PID/Boost/Rampa.
+//  - Usunięto WiFiManager z procesu startowego (begin()), aby
+//    uniknąć konfliktu i uszkodzenia obiektu serwera.
+//  - Przywrócono standardową, nieblokującą inicjalizację WiFi.
 // =================================================================
 #include "DryerController.h"
 #include <Arduino.h>
@@ -37,14 +38,8 @@ void DryerController::begin() {
     
     if (currentState.isWifiEnabled) {
         WiFi.mode(WIFI_STA);
-        
-        AsyncWiFiManager wifiManager(server, nullptr);
-        if (wifiManager.autoConnect("Drybox_Setup")) {
-            Serial.println("Polaczono z siecia przez WiFiManager.");
-            setupWebServer();
-        } else {
-            Serial.println("Nie udalo sie polaczyc z WiFi.");
-        }
+        setupWebServer(); 
+        WiFi.begin(); // Używamy standardowego, nieblokującego startu.
     }
 
     currentState.sensorsOk = sensorManager.areSensorsFound();
@@ -121,38 +116,35 @@ void DryerController::update() {
             actuatorManager.playAlarmSound(false);
         }
 
-     if (currentState.currentMode != MODE_IDLE && !currentState.isInAlarmState) {
-    pidInput = currentState.avgChamberTemp;
-    pidSetpoint = currentState.targetTemp;
+        if (currentState.currentMode != MODE_IDLE && !currentState.isInAlarmState) {
+            pidInput = currentState.avgChamberTemp;
+            pidSetpoint = currentState.targetTemp;
 
-    // Logika 3-stopniowego grzania
-    bool boostTimeExceeded = (millis() - currentState.dryingStartTime) > (currentState.boostMaxTime_min * 60000UL);
-    bool boostTempReached = (pidInput >= currentState.boostTempThreshold);
-    bool psuTooHot = (currentState.ds18b20_temps[3] >= currentState.boostPsuTempLimit);
-    
-    if (currentState.isBoostActive && (boostTimeExceeded || boostTempReached || psuTooHot)) {
-        currentState.isBoostActive = false;
-    }
+            bool boostTimeExceeded = (millis() - currentState.dryingStartTime) > (currentState.boostMaxTime_min * 60000UL);
+            bool boostTempReached = (pidInput >= currentState.boostTempThreshold);
+            bool psuTooHot = (currentState.ds18b20_temps[3] >= currentState.boostPsuTempLimit);
+            
+            if (currentState.isBoostActive && (boostTimeExceeded || boostTempReached || psuTooHot)) {
+                currentState.isBoostActive = false;
+            }
 
-    if (currentState.isBoostActive) {
-        currentState.pidOutput = 255;
-    } else if (pidInput < pidSetpoint) {
-        currentState.pidOutput = (currentState.rampPowerPercent * 255) / 100;
-    } else {
-        pid.Compute();
-        currentState.pidOutput = pidOutput;
-    }
-    
-    // KLUCZOWA POPRAWKA: Ustawiamy logiczny stan grzania na podstawie tego, czy moc jest > 0
-    currentState.isHeaterOn = (currentState.pidOutput > 0);
+            if (currentState.isBoostActive) {
+                currentState.pidOutput = 255;
+            } else if (pidInput < pidSetpoint) {
+                currentState.pidOutput = (currentState.rampPowerPercent * 255) / 100;
+            } else {
+                pid.Compute();
+                currentState.pidOutput = pidOutput;
+            }
+            currentState.isHeaterOn = (currentState.pidOutput > 0);
 
-} else {
-    currentState.pidOutput = 0;
-    currentState.isHeaterOn = false; // Logiczny stan grzania = wyłączony
-    currentState.isBoostActive = false;
-}
-
-actuatorManager.update(currentState); // ActuatorManager teraz tylko wykonuje polecenia
+        } else {
+            currentState.pidOutput = 0;
+            currentState.isHeaterOn = false;
+            currentState.isBoostActive = false;
+        }
+        
+        actuatorManager.update(currentState);
 
         if(currentState.isHeaterOn) {
             currentState.heaterTotalOnTime_ms += (currentTime - lastHeaterUpdateTime);

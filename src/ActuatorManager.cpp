@@ -1,10 +1,10 @@
 // =================================================================
 // Plik:          ActuatorManager.cpp
-// Wersja:        5.00-soft-pwm-v1
+// Wersja:        5.11
 // Data:          13.10.2025
 // Opis Zmian:
-//  - Zastąpiono `ledcWrite` sterowaniem czasowo-proporcjonalnym
-//    (wolne PWM na bazie `digitalWrite` i `millis()`).
+//  - Usunięto linię nadpisującą logiczny stan `isHeaterOn`,
+//    aby rozwiązać problem migającej ikony i diody LED.
 // =================================================================
 #include <Arduino.h>
 #include "ActuatorManager.h"
@@ -56,8 +56,27 @@ void ActuatorManager::update(DryerState& state) {
     } else {
         setHeater(false);
     }
-    state.isHeaterOn = isHeaterOn_internal;
+    // state.isHeaterOn = isHeaterOn_internal; // TA BŁĘDNA LINIA ZOSTAŁA USUNIĘTA
 
+
+    if (state.isBoostActive) {
+        setChamberFan(true);
+    } else if (state.currentMode != MODE_IDLE) {
+        float max_t = -999.0, min_t = 999.0;
+        for (int i : {0, 1, 2, 4}) {
+            if (state.ds18b20_temps[i] > max_t) max_t = state.ds18b20_temps[i];
+            if (state.ds18b20_temps[i] < min_t) min_t = state.ds18b20_temps[i];
+        }
+        float d = max_t - min_t;
+        if (!isChamberFanOn_internal && d > CHAMBER_DELTA_ON) {
+            setChamberFan(true);
+        } else if (isChamberFanOn_internal && d < CHAMBER_DELTA_OFF) {
+            setChamberFan(false);
+        }
+    } else {
+        setChamberFan(false);
+    }
+    state.isChamberFanOn = isChamberFanOn_internal;
 
     float p_on = state.psuFanOnTemp;
     float p_off = p_on - state.psuFanOffHysteresis;
@@ -75,24 +94,7 @@ void ActuatorManager::update(DryerState& state) {
         }
     }
     state.isHeaterFanOn = isHeaterFanOn_internal;
-
-    if (state.currentMode != MODE_IDLE) {
-        float max_t = -999.0, min_t = 999.0;
-        for (int i : {0, 1, 2, 4}) {
-            if (state.ds18b20_temps[i] > max_t) max_t = state.ds18b20_temps[i];
-            if (state.ds18b20_temps[i] < min_t) min_t = state.ds18b20_temps[i];
-        }
-        float d = max_t - min_t;
-        if (!isChamberFanOn_internal && d > CHAMBER_DELTA_ON) {
-            setChamberFan(true);
-        } else if (isChamberFanOn_internal && d < CHAMBER_DELTA_OFF) {
-            setChamberFan(false);
-        }
-    } else {
-        setChamberFan(false);
-    }
     
-    state.isChamberFanOn = isChamberFanOn_internal;
     setHeaterLed(state.isHeaterOn); 
 
     if (isAlarmActive) {

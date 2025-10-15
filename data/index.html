@@ -1,3 +1,5 @@
+
+
 <!DOCTYPE html>
 <html lang="pl">
 <head>
@@ -13,56 +15,61 @@
         <header>
             <h1 id="header-title">Drybox Control</h1>
         </header>
-        <main>
-            <div class="card">
-                <h2>Status i Kontrola</h2>
-                <div class="status-grid">
-                    <div class="data-point"><strong>Temperatura:</strong> <span id="temp">--.-</span> &deg;C</div>
-                    <div class="data-point"><strong>Wilgotnosc:</strong> <span id="hum">--.-</span> %</div>
-                    <div class="data-point"><strong>Cel Temp:</strong> <span id="target-temp">--</span> &deg;C</div>
-                    <div class="data-point"><strong>Cel Wilg:</strong> <span id="target-hum">--</span> %</div>
-                </div>
-                <div class="status-icons">
-                    <div class="icon" id="icon-heater" title="Grzalka">🔥</div>
-                    <div class="icon" id="icon-fan-chamber" title="Wentylator Komory">⚙️</div>
-                    <div class="icon" id="icon-fan-psu" title="Wentylator Zasilacza">💨</div>
-                </div>
-                <div class="controls">
-                    <select id="profile-select">
-                        <option value="0">Profil: PLA</option>
-                        <option value="1">Profil: PETG</option>
-                        <option value="2">Profil: ABS</option>
-                        <option value="3">Profil: Wlasny</option>
-                    </select>
-                    <select id="mode-select">
-                        <option value="0">Tryb: Czasowy</option>
-                        <option value="1">Tryb: Wilgotnosc</option>
-                        <option value="2">Tryb: Ciagly</option>
-                    </select>
-                    <button id="start-btn">Start</button>
-                    <button id="stop-btn">Stop</button>
+        <main class="dashboard-layout">
+            <div class="main-column">
+                <div class="card">
+                    <h2>Wykres na Żywo</h2>
+                    <canvas id="liveChart"></canvas>
                 </div>
             </div>
-            <div class="card">
-                <h2>Wykres na Zywo</h2>
-                <canvas id="liveChart"></canvas>
-            </div>
-            <div class="card details-card">
-                <h2>Widok Szczegolowy</h2>
-                <div class="details-grid">
-                    <div class="sensor-layout">
-                        <h3>Temperatury DS18B20</h3>
-                        <div class="dryer-box">
-                            <div class="sensor s1" title="Przod Lewy">K1: <span id="ds1">--.-</span></div>
-                            <div class="sensor s4" title="Przod Prawy">K4: <span id="ds4">--.-</span></div>
-                            <div class="sensor s-psu" title="Zasilacz">PSU: <span id="ds3">--.-</span></div>
-                            <div class="sensor s2" title="Tyl Lewy">K2: <span id="ds2">--.-</span></div>
-                            <div class="sensor s3" title="Tyl Prawy">K3: <span id="ds0">--.-</span></div>
-                        </div>
+            <div class="sidebar-column">
+                <div class="card">
+                    <h2>Status i Kontrola</h2>
+                    <div class="status-grid">
+                        <div class="data-point"><strong>Temperatura:</strong> <span id="temp">--.-</span> &deg;C</div>
+                        <div class="data-point"><strong>Cel Temp:</strong> <span id="target-temp">--</span> &deg;C</div>
+                        <div class="data-point"><strong>Wilgotność:</strong> <span id="hum">--.-</span> %</div>
+                        <div class="data-point"><strong>Cel Wilg:</strong> <span id="target-hum">--</span> %</div>
                     </div>
-                    <div class="spool-status">
-                        <h3>Status Rolek</h3>
-                        <div id="spool-grid" class="spool-grid"></div>
+                    <div class="status-icons">
+                        <div class="icon" id="icon-heater" title="Grzałka">🔥</div>
+                        <div class="icon" id="icon-cooling" title="Chłodzenie">❄️</div>
+                        <div class="icon" id="icon-fan-chamber" title="Wentylator Komory">⚙️</div>
+                        <div class="icon" id="icon-fan-psu" title="Wentylator Zasilacza">💨</div>
+                    </div>
+                    <div class="controls">
+                        <select id="profile-select">
+                            <option value="0">Profil: PLA</option>
+                            <option value="1">Profil: PETG</option>
+                            <option value="2">Profil: ABS</option>
+                            <option value="3">Profil: Własny</option>
+                        </select>
+                        <select id="mode-select">
+                            <option value="0">Tryb: Czasowy</option>
+                            <option value="1">Tryb: Wilgotność</option>
+                            <option value="2">Tryb: Ciągły</option>
+                        </select>
+                        <button id="start-btn">Start</button>
+                        <button id="stop-btn">Stop</button>
+                    </div>
+                </div>
+                <div class="card details-card">
+                    <h2>Widok Szczegółowy</h2>
+                    <div class="details-grid">
+                        <div class="sensor-layout-container">
+                            <h3>Temperatury DS18B20</h3>
+                            <div class="chamber-view">
+                                <div class="sensor-label sl-k2" title="Tył Lewy">K2: <span id="ds2">--.-</span></div>
+                                <div class="sensor-label sl-k3" title="Tył Prawy">K3: <span id="ds0">--.-</span></div>
+                                <div class="sensor-label sl-psu" title="Zasilacz">PSU: <span id="ds3">--.-</span></div>
+                                <div class="sensor-label sl-k1" title="Przód Lewy">K1: <span id="ds1">--.-</span></div>
+                                <div class="sensor-label sl-k4" title="Przód Prawy">K4: <span id="ds4">--.-</span></div>
+                            </div>
+                        </div>
+                        <div class="spool-status">
+                            <h3>Status Rolek</h3>
+                            <div id="spool-grid" class="spool-grid"></div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -72,13 +79,13 @@
         let chart;
         const SPOOL_TYPES = ["Pusty", "PLA", "PETG", "ABS", "ASA", "TPU", "Inny"];
         const SPOOL_COLORS = [
-            { name: 'Brak', hex: 'transparent' }, { name: 'Bialy', hex: '#FFFFFF' },
+            { name: 'Brak', hex: 'transparent' }, { name: 'Biały', hex: '#FFFFFF' },
             { name: 'Czarny', hex: '#000000' }, { name: 'Szary', hex: '#808080' },
             { name: 'Czerwony', hex: '#FF0000' }, { name: 'Zielony', hex: '#008000' },
-            { name: 'Niebieski', hex: '#0000FF' }, { name: 'Zolty', hex: '#FFFF00' },
-            { name: 'Pomaranczowy', hex: '#FFA500' }, { name: 'Fioletowy', hex: '#800080' },
+            { name: 'Niebieski', hex: '#0000FF' }, { name: 'Żółty', hex: '#FFFF00' },
+            { name: 'Pomarańczowy', hex: '#FFA500' }, { name: 'Fioletowy', hex: '#800080' },
             { name: 'Naturalny', hex: '#F1E9D2' }, { name: 'Srebrny', hex: '#C0C0C0' },
-            { name: 'Zloty', hex: '#FFD700' }, { name: 'Multikolor', hex: 'conic-gradient(red, yellow, lime, aqua, blue, magenta, red)' }
+            { name: 'Złoty', hex: '#FFD700' }, { name: 'Multikolor', hex: 'conic-gradient(red, yellow, lime, aqua, blue, magenta, red)' }
         ];
 
         function initChart() {
@@ -87,7 +94,7 @@
                 type: 'line',
                 data: { datasets: [
                     { label: 'Temperatura', yAxisID: 'yTemp', borderColor: 'rgb(255, 99, 132)', tension: 0.1, data: [] },
-                    { label: 'Wilgotnosc', yAxisID: 'yTemp', borderColor: 'rgb(54, 162, 235)', tension: 0.1, data: [] },
+                    { label: 'Wilgotność', yAxisID: 'yTemp', borderColor: 'rgb(54, 162, 235)', tension: 0.1, data: [] },
                     { label: 'Moc', yAxisID: 'yPower', borderColor: 'rgb(255, 206, 86)', tension: 0.1, data: [] }
                 ]},
                 options: {
@@ -96,18 +103,34 @@
                         yTemp: { type: 'linear', position: 'left', min: 0, max: 80, title: { display: true, text: 'Temp (°C) / Wilg (%)' } },
                         yPower: { type: 'linear', position: 'right', min: 0, max: 260, title: { display: true, text: 'Moc (0-255)' }, grid: { drawOnChartArea: false } }
                     },
-                    animation: { duration: 250 }
+                    animation: { duration: 250 },
+                    maintainAspectRatio: false
                 }
             });
         }
 
         function updateUI(data) {
-            document.getElementById('header-title').textContent = 'Drybox ' + data.fw_version;
+            // ================== POCZĄTEK ZMIANY v5.25 ==================
+            document.getElementById('header-title').textContent = 'Drybox ' + data.fw_version + ' by PPSerwis';
+            
+            const startBtn = document.getElementById('start-btn');
+            const stopBtn = document.getElementById('stop-btn');
+
+            if (data.mode === "Czuwanie") {
+                startBtn.disabled = false;
+                stopBtn.disabled = true;
+            } else {
+                startBtn.disabled = true;
+                stopBtn.disabled = false;
+            }
+            // =================== KONIEC ZMIANY v5.25 ===================
+            
             document.getElementById('temp').textContent = data.temp.toFixed(1);
             document.getElementById('hum').textContent = data.hum.toFixed(1);
             document.getElementById('target-temp').textContent = data.target_temp.toFixed(1);
             document.getElementById('target-hum').textContent = data.target_hum.toFixed(0);
             document.getElementById('icon-heater').classList.toggle('active', data.icon_heater);
+            document.getElementById('icon-cooling').classList.toggle('active', data.icon_cooling);
             document.getElementById('icon-fan-chamber').classList.toggle('active', data.icon_fan_chamber);
             document.getElementById('icon-fan-psu').classList.toggle('active', data.icon_fan_psu);
             document.getElementById('ds0').textContent = data.ds0.toFixed(1);
@@ -121,12 +144,21 @@
             for (let i = 0; i < 4; i++) {
                 const spool = data.spools[i];
                 const type = SPOOL_TYPES[spool.type] || 'Brak';
+                // ================== POCZĄTEK ZMIANY v5.25 ==================
                 const color = SPOOL_COLORS[spool.color] || { name: 'Brak', hex: 'transparent'};
                 const column = document.createElement('div');
                 column.className = 'spool-column';
+                
                 let colorDotHTML = `<span class="color-dot" style="background: ${color.hex};"></span>`;
-                if (type === 'Pusty') { colorDotHTML = `<span class="color-dot empty"></span>`; }
-                column.innerHTML = `<div class="spool-id">${i + 1}</div><div class="spool-type">${type}</div><div class="spool-color">${colorDotHTML}<span>${color.name}</span></div>`;
+                let colorNameHTML = `<span>${color.name}</span>`;
+                
+                if (type === 'Pusty') { 
+                    colorDotHTML = `<span class="color-dot empty"></span>`; 
+                    colorNameHTML = ''; // Usuwamy nazwę koloru
+                }
+                
+                column.innerHTML = `<div class="spool-id">${i + 1}</div><div class="spool-type">${type}</div><div class="spool-color">${colorDotHTML}${colorNameHTML}</div>`;
+                // =================== KONIEC ZMIANY v5.25 ===================
                 spoolGrid.appendChild(column);
             }
 

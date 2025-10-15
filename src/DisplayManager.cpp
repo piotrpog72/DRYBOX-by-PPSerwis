@@ -1,8 +1,10 @@
 // =================================================================
 // Plik:          DisplayManager.cpp
-// Wersja:        5.20
+// Wersja:        5.25
+// Data:          15.10.2025
 // Opis Zmian:
-//  - Dodano nowe opcje do menu "Ustawienia Zaawansowane".
+//  - [FEATURE] Dodano branding na ekranie startowym.
+//  - [FIX] Ukryto informację o kolorze dla pustych rolek.
 // =================================================================
 #include "DisplayManager.h"
 #include <Arduino.h>
@@ -29,15 +31,18 @@ void DisplayManager::setContrast(uint8_t value) {
 }
 
 void DisplayManager::showStartupScreen(const DryerState& s) {
+    // ================== POCZĄTEK ZMIANY v5.25 ==================
     statusLcd.setCursor(0, 0); statusLcd.print("DRYBOX " FW_VERSION);
-    statusLcd.setCursor(0, 1); statusLcd.print("System starting...");
+    statusLcd.setCursor(0, 1); statusLcd.print("by PPSerwis     "); // Dopasowane do 16 znaków
+
     interactiveGcd.clearBuffer(); interactiveGcd.setFontMode(1); interactiveGcd.setDrawColor(1);
     
     interactiveGcd.setFont(u8g2_font_helvB10_tr);
     interactiveGcd.drawStr(10, 28, "DRYBOX " FW_VERSION);
     
     interactiveGcd.setFont(u8g2_font_6x12_tr);
-    interactiveGcd.drawStr(10, 48, "System starting...");
+    interactiveGcd.drawStr(10, 48, "by PPSerwis AIRSOFT & more");
+    // =================== KONIEC ZMIANY v5.25 ===================
     
     interactiveGcd.sendBuffer();
 }
@@ -69,7 +74,9 @@ void DisplayManager::update(const DryerState& s, const String& p) {
 
 void DisplayManager::wakeUpInteractive() {
     digitalWrite(GLCD_BACKLIGHT_PIN, HIGH);
-    interactiveGcd.setPowerSave(0); is_sleeping = false;
+    interactiveGcd.setPowerSave(0);
+    interactiveGcd.clearDisplay(); 
+    is_sleeping = false;
 }
 
 void DisplayManager::sleepInteractive() {
@@ -196,7 +203,11 @@ void DisplayManager::drawSpoolStatusScreen(const DryerState& state) {
         snprintf(numBuf, sizeof(numBuf), "%d", i + 1);
         interactiveGcd.drawStr(colX + 12, 28, numBuf);
         interactiveGcd.drawStr(colX, 40, FILAMENT_TYPES[state.spools[i].typeIndex]);
-        interactiveGcd.drawStr(colX, 52, FILAMENT_COLORS_SHORT[state.spools[i].colorIndex]);
+        // ================== POCZĄTEK ZMIANY v5.25 ==================
+        if (state.spools[i].typeIndex != 0) { // Rysuj kolor tylko jeśli rolka nie jest pusta
+            interactiveGcd.drawStr(colX, 52, FILAMENT_COLORS_SHORT[state.spools[i].colorIndex]);
+        }
+        // =================== KONIEC ZMIANY v5.25 ===================
     }
     interactiveGcd.drawVLine(32, 20, 36);
     interactiveGcd.drawVLine(64, 20, 36);
@@ -266,10 +277,8 @@ void DisplayManager::updateInteractiveDisplay(const DryerState& s, const String&
                 current_icon_x -= (icon_w + icon_pad);
 
                 if (s.isHeaterOn) {
-                         // Zawsze pokazuj płomyk, gdy program jest w trybie grzania
-                         interactiveGcd.drawGlyph(current_icon_x, 15, 0x9F);
-                    } else if (s.isHeaterFanOn && s.currentMode == MODE_IDLE) {
-                        // Ikonę schładzania pokazuj TYLKO, gdy proces jest zakończony, a wentylator jeszcze stygnie
+                         interactiveGcd.drawGlyph(current_icon_x, 15, 0xA8); 
+                } else if (s.isHeaterFanOn && s.currentMode == MODE_IDLE) {
                           interactiveGcd.drawGlyph(current_icon_x, 15, 0x48);
                 }
                 current_icon_x -= (icon_w + icon_pad);
@@ -308,7 +317,7 @@ void DisplayManager::updateInteractiveDisplay(const DryerState& s, const String&
                             float total_hum_to_remove = s.startingHumidity - s.targetHumidity;
                             if (total_hum_to_remove > 0.1) {
                                 float hum_removed = s.startingHumidity - s.dhtHum;
-                                progress = (hum_removed * 100) / hum_removed;
+                                progress = (hum_removed * 100) / total_hum_to_remove;
                             } else { progress = 100; }
                         } else if (s.currentMode == MODE_CONTINUOUS) {
                             unsigned long total_elapsed_ms = millis() - s.dryingStartTime;

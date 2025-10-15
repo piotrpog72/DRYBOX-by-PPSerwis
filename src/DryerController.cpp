@@ -1,10 +1,9 @@
 // =================================================================
 // Plik:          DryerController.cpp
-// Wersja:        5.20 (Skonsolidowana)
+// Wersja:        5.25
+// Data:          15.10.2025
 // Opis Zmian:
-//  - Przepisano całą logikę sieciową na standardowy WebServer.
-//  - Usunięto WebSockets na rzecz AJAX Polling.
-//  - Dodano handleClient() w pętli update().
+//  - [FEATURE] Menu rolek pomija wybór koloru dla typu "Pusty".
 // =================================================================
 #include "DryerController.h"
 #include <Arduino.h>
@@ -120,6 +119,8 @@ void DryerController::update() {
             currentState.pidOutput = 0;
         }
         
+        currentState.isHeaterOn = (currentState.currentMode != MODE_IDLE && !currentState.isInAlarmState);
+        
         actuatorManager.update(currentState);
 
         if(currentState.isHeaterOn) {
@@ -185,6 +186,9 @@ void DryerController::handleDataRequest() {
     doc["icon_heater"] = currentState.isHeaterOn;
     doc["icon_fan_chamber"] = currentState.isChamberFanOn;
     doc["icon_fan_psu"] = currentState.isPsuFanOn;
+    // ================== POCZĄTEK ZMIANY v5.23 ==================
+    doc["icon_cooling"] = (currentState.isHeaterFanOn && currentState.currentMode == MODE_IDLE);
+    // =================== KONIEC ZMIANY v5.23 ===================
     doc["ds0"] = currentState.ds18b20_temps[0];
     doc["ds1"] = currentState.ds18b20_temps[1];
     doc["ds2"] = currentState.ds18b20_temps[2];
@@ -202,6 +206,7 @@ void DryerController::handleDataRequest() {
     server.send(200, "application/json", json);
 }
 
+// ... (reszta pliku DryerController.cpp pozostaje bez zmian)
 void DryerController::handleCommandRequest() {
     if (server.hasArg("cmd")) {
         String command = server.arg("cmd");
@@ -517,10 +522,19 @@ void DryerController::processUserInput() {
                 inputManager.resetEncoder(currentState.spools[editingSpoolIndex].typeIndex);
                 break;
             case MENU_SPOOL_SET_TYPE:
+                // ================== POCZĄTEK ZMIANY v5.25 ==================
                 currentState.spools[editingSpoolIndex].typeIndex = currentState.menu_selection;
-                currentState.currentMenuState = MENU_SPOOL_SET_COLOR;
-                inputManager.resetEncoder(currentState.spools[editingSpoolIndex].colorIndex);
+                if (currentState.menu_selection == 0) { // Jeśli wybrano "Pusty"
+                    currentState.spools[editingSpoolIndex].colorIndex = 0; // Ustaw kolor na "Brak"
+                    currentState.currentMenuState = MENU_SPOOL_SELECT; // Wróć do wyboru rolki
+                    inputManager.resetEncoder(editingSpoolIndex);
+                } else { // W przeciwnym razie, przejdź do wyboru koloru
+                    currentState.currentMenuState = MENU_SPOOL_SET_COLOR;
+                    inputManager.resetEncoder(currentState.spools[editingSpoolIndex].colorIndex);
+                }
+                // =================== KONIEC ZMIANY v5.25 ===================
                 break;
+
             case MENU_SPOOL_SET_COLOR:
                 currentState.spools[editingSpoolIndex].colorIndex = currentState.menu_selection;
                 currentState.currentMenuState = MENU_SPOOL_SELECT;
@@ -610,6 +624,7 @@ void DryerController::processUserInput() {
         int new_val = val; if (new_val < 10) new_val = 10; if (new_val > 100) new_val = 100; currentState.menu_selection = new_val;
     }
 }
+
 
 void DryerController::initializeProfiles() {
     profiles[PROFILE_PLA]={"PLA",45.0,15.0}; profiles[PROFILE_PETG]={"PETG",55.0,15.0};

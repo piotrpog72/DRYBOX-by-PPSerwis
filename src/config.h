@@ -1,6 +1,6 @@
 // =================================================================
 // Plik:          config.h
-// Wersja:        5.23
+// Wersja:        5.26
 // Opis Zmian:
 //  - Podniesienie numeru wersji FW_VERSION.
 //  - Dodano domyślne stałe dla nowej logiki grzania (Boost/Rampa).
@@ -13,7 +13,7 @@
 #define CONFIG_H
 #include <DallasTemperature.h>
 
-#define FW_VERSION "v5.23" // Wersja z zaawansowanym sterowaniem grzaniem
+#define FW_VERSION "v5.26" // Wersja z zaawansowanym sterowaniem grzaniem
 #define I2C_SDA_PIN 21
 #define I2C_SCL_PIN 22
 #define GLCD_CLK_PIN   33

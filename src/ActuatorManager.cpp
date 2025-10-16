@@ -1,10 +1,10 @@
 // =================================================================
 // Plik:          ActuatorManager.cpp
-// Wersja:        5.20
-// Data:          15.10.2025
+// Wersja:        5.26
+// Data:          16.10.2025
 // Opis Zmian:
-//  - OSTATECZNA POPRAWKA: Usunięto linię nadpisującą logiczny
-//    stan `isHeaterOn`, aby rozwiązać problem migającej ikony.
+//  - [REFACTOR] Zaktualizowano logikę wentylatora komory, aby
+//    korzystała z nowego enuma `HeatingPhase`.
 // =================================================================
 #include <Arduino.h>
 #include "ActuatorManager.h"
@@ -57,13 +57,13 @@ void ActuatorManager::update(DryerState& state) {
     } else {
         setHeater(false);
     }
-    // state.isHeaterOn = isHeaterOn_internal; // TA BŁĘDNA LINIA ZOSTAŁA USUNIĘTA
-
 
     // Sterowanie wentylatorem komory
-    if (state.isBoostActive) {
-        setChamberFan(true);
+    // ================== POCZĄTEK ZMIANY v5.26 ==================
+    if (state.currentPhase == PHASE_BOOST) {
+        setChamberFan(true); // Wymuszona praca w fazie Boost
     } else if (state.currentMode != MODE_IDLE) {
+    // =================== KONIEC ZMIANY v5.26 ===================
         float max_t = -999.0, min_t = 999.0;
         for (int i : {0, 1, 2, 4}) {
             if (state.ds18b20_temps[i] > max_t) max_t = state.ds18b20_temps[i];

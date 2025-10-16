@@ -1,6 +1,7 @@
 // =================================================================
 // Plik:          MenuState.h
-// Wersja:        5.20
+// Wersja:        5.26
+// Data:          16.10.2025
 // Opis Zmian:
 //  - Dodano nowe stany menu dla opcji sterowania grzaniem.
 // =================================================================

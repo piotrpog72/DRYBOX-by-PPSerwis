@@ -1,9 +1,11 @@
 // =================================================================
 // Plik:          DryerController.cpp
-// Wersja:        5.25
-// Data:          15.10.2025
+// Wersja:        5.26 (Naprawiona)
+// Data:          16.10.2025
 // Opis Zmian:
-//  - [FEATURE] Menu rolek pomija wybór koloru dla typu "Pusty".
+//  - [FIX] Przywrócono brakujące funkcje `startWifiConfig` i
+//    `handleWifi`, które powodowały błędy linkera.
+//  - [FEATURE] Zaimplementowano trzystopniową logikę grzania.
 // =================================================================
 #include "DryerController.h"
 #include <Arduino.h>
@@ -50,7 +52,7 @@ void DryerController::begin() {
     pid.SetSampleTime(1000);
     pid.SetOutputLimits(0, 255);
     pid.SetTunings(currentState.pid_kp, currentState.pid_ki, currentState.pid_kd);
-    pid.SetMode(AUTOMATIC);
+    pid.SetMode(MANUAL);
 }
 
 void DryerController::startWifiConfig() {
@@ -79,6 +81,15 @@ void DryerController::handleWifi() {
     }
 }
 
+void DryerController::startDryingProcess() {
+    currentState.dryingStartTime = millis();
+    currentState.startingHumidity = currentState.dhtHum;
+    currentState.heaterTotalOnTime_ms = 0;
+    lastHeaterUpdateTime = millis();
+    currentState.currentPhase = PHASE_BOOST;
+    currentState.currentMenuState = SCREEN_MAIN;
+}
+
 void DryerController::update() {
     if(currentState.isWifiEnabled) {
         server.handleClient();
@@ -98,7 +109,6 @@ void DryerController::update() {
         currentState.previousMode = currentState.currentMode;
         
         bool alarmCondition = (currentState.avgChamberTemp > OVERHEAT_TEMP_LIMIT) || (currentState.ds18b20_temps[3] > currentState.psuOverheatLimit);
-
         if (alarmCondition && !currentState.isInAlarmState) {
             currentState.isInAlarmState = true;
             currentState.currentMode = MODE_IDLE;
@@ -111,15 +121,57 @@ void DryerController::update() {
         }
 
         if (currentState.currentMode != MODE_IDLE && !currentState.isInAlarmState) {
-            pidInput = currentState.avgChamberTemp;
-            pidSetpoint = currentState.targetTemp;
-            pid.Compute();
-            currentState.pidOutput = pidOutput;
+            
+            switch (currentState.currentPhase) {
+                
+                case PHASE_BOOST: {
+                    currentState.pidOutput = 255;
+
+                    bool boostTimeElapsed = (millis() - currentState.dryingStartTime) > (currentState.boostMaxTime_min * 60000UL);
+                    bool tempThresholdReached = currentState.avgChamberTemp >= currentState.boostTempThreshold;
+                    bool psuTempLimitReached = currentState.ds18b20_temps[3] >= currentState.boostPsuTempLimit;
+
+                    if (boostTimeElapsed || tempThresholdReached || psuTempLimitReached) {
+                        currentState.currentPhase = PHASE_RAMP;
+                        Serial.println("HEATING: Boost -> Ramp");
+                    }
+                    break;
+                }
+
+                case PHASE_RAMP: {
+                    currentState.pidOutput = (255 * currentState.rampPowerPercent) / 100;
+
+                    if (currentState.avgChamberTemp >= (currentState.targetTemp - 2.0)) {
+                        pid.SetMode(AUTOMATIC); 
+                        currentState.currentPhase = PHASE_PID;
+                        Serial.println("HEATING: Ramp -> PID");
+                    }
+                    break;
+                }
+
+                case PHASE_PID: {
+                    pidInput = currentState.avgChamberTemp;
+                    pidSetpoint = currentState.targetTemp;
+                    pid.Compute();
+                    currentState.pidOutput = pidOutput;
+                    break;
+                }
+
+                case PHASE_OFF:
+                default:
+                    currentState.pidOutput = 0;
+                    break;
+            }
+
         } else {
             currentState.pidOutput = 0;
+            if (currentState.currentPhase != PHASE_OFF) {
+                currentState.currentPhase = PHASE_OFF;
+                pid.SetMode(MANUAL);
+            }
         }
         
-        currentState.isHeaterOn = (currentState.currentMode != MODE_IDLE && !currentState.isInAlarmState);
+        currentState.isHeaterOn = (currentState.currentPhase != PHASE_OFF && !currentState.isInAlarmState);
         
         actuatorManager.update(currentState);
 
@@ -183,12 +235,22 @@ void DryerController::handleDataRequest() {
         case MODE_CONTINUOUS: modeStr = "Ciagly"; break;
     }
     doc["mode"] = modeStr;
+
+    String phaseStr = "";
+    if (currentState.isHeaterOn) {
+        switch (currentState.currentPhase) {
+            case PHASE_BOOST: phaseStr = "Boost"; break;
+            case PHASE_RAMP: phaseStr = "Ramp"; break;
+            case PHASE_PID: phaseStr = "PID"; break;
+            default: break;
+        }
+    }
+    doc["heating_phase"] = phaseStr;
+    
     doc["icon_heater"] = currentState.isHeaterOn;
+    doc["icon_cooling"] = (currentState.isHeaterFanOn && currentState.currentMode == MODE_IDLE);
     doc["icon_fan_chamber"] = currentState.isChamberFanOn;
     doc["icon_fan_psu"] = currentState.isPsuFanOn;
-    // ================== POCZĄTEK ZMIANY v5.23 ==================
-    doc["icon_cooling"] = (currentState.isHeaterFanOn && currentState.currentMode == MODE_IDLE);
-    // =================== KONIEC ZMIANY v5.23 ===================
     doc["ds0"] = currentState.ds18b20_temps[0];
     doc["ds1"] = currentState.ds18b20_temps[1];
     doc["ds2"] = currentState.ds18b20_temps[2];
@@ -206,7 +268,6 @@ void DryerController::handleDataRequest() {
     server.send(200, "application/json", json);
 }
 
-// ... (reszta pliku DryerController.cpp pozostaje bez zmian)
 void DryerController::handleCommandRequest() {
     if (server.hasArg("cmd")) {
         String command = server.arg("cmd");
@@ -219,18 +280,17 @@ void DryerController::handleCommandRequest() {
             int secondColon = command.indexOf(':', firstColon + 1);
             int profileIndex = command.substring(firstColon + 1, secondColon).toInt();
             int modeIndex = command.substring(secondColon + 1).toInt();
+            
             currentState.currentProfileType = (ProfileType)profileIndex;
             currentState.targetTemp = profiles[profileIndex].temp;
             currentState.targetHumidity = profiles[profileIndex].humidity;
+            
             switch(modeIndex) {
                 case 0: currentState.currentMode = MODE_TIMED; break;
                 case 1: currentState.currentMode = MODE_HUMIDITY_TARGET; break;
                 case 2: currentState.currentMode = MODE_CONTINUOUS; break;
             }
-            currentState.dryingStartTime = millis();
-            currentState.startingHumidity = currentState.dhtHum;
-            currentState.heaterTotalOnTime_ms = 0;
-            lastHeaterUpdateTime = millis();
+            startDryingProcess();
         }
         server.send(200, "text/plain", "OK");
     } else {
@@ -352,28 +412,25 @@ void DryerController::processUserInput() {
                 break;
             case MENU_MODE_SELECT:
                 switch(currentState.menu_selection) {
-                    case 0: currentState.currentMenuState = MENU_SET_TIME; inputManager.resetEncoder(36); break;
+                    case 0:
+                        currentState.currentMode = MODE_TIMED;
+                        currentState.currentMenuState = MENU_SET_TIME; 
+                        inputManager.resetEncoder(36); 
+                        break; 
                     case 1:
                         currentState.currentMode = MODE_HUMIDITY_TARGET;
+                        startDryingProcess();
                         break;
                     case 2:
                         currentState.currentMode = MODE_CONTINUOUS;
+                        startDryingProcess();
                         break;
-                }
-                if (currentState.menu_selection != 0) {
-                    currentState.dryingStartTime = millis();
-                    currentState.startingHumidity = currentState.dhtHum;
-                    currentState.heaterTotalOnTime_ms = 0;
-                    lastHeaterUpdateTime = millis();
-                    currentState.currentMenuState = SCREEN_MAIN;
                 }
                 break;
             case MENU_SET_TIME:
                 currentState.dryingDurationMinutes = currentState.menu_selection * 10;
                 if (currentState.dryingDurationMinutes > 0) {
-                    currentState.currentMode = MODE_TIMED;
-                    currentState.dryingStartTime = millis();
-                    currentState.currentMenuState = SCREEN_MAIN;
+                    startDryingProcess();
                 }
                 break;
             case MENU_SETTINGS:
@@ -522,19 +579,16 @@ void DryerController::processUserInput() {
                 inputManager.resetEncoder(currentState.spools[editingSpoolIndex].typeIndex);
                 break;
             case MENU_SPOOL_SET_TYPE:
-                // ================== POCZĄTEK ZMIANY v5.25 ==================
                 currentState.spools[editingSpoolIndex].typeIndex = currentState.menu_selection;
-                if (currentState.menu_selection == 0) { // Jeśli wybrano "Pusty"
-                    currentState.spools[editingSpoolIndex].colorIndex = 0; // Ustaw kolor na "Brak"
-                    currentState.currentMenuState = MENU_SPOOL_SELECT; // Wróć do wyboru rolki
+                if (currentState.menu_selection == 0) { 
+                    currentState.spools[editingSpoolIndex].colorIndex = 0; 
+                    currentState.currentMenuState = MENU_SPOOL_SELECT; 
                     inputManager.resetEncoder(editingSpoolIndex);
-                } else { // W przeciwnym razie, przejdź do wyboru koloru
+                } else { 
                     currentState.currentMenuState = MENU_SPOOL_SET_COLOR;
                     inputManager.resetEncoder(currentState.spools[editingSpoolIndex].colorIndex);
                 }
-                // =================== KONIEC ZMIANY v5.25 ===================
                 break;
-
             case MENU_SPOOL_SET_COLOR:
                 currentState.spools[editingSpoolIndex].colorIndex = currentState.menu_selection;
                 currentState.currentMenuState = MENU_SPOOL_SELECT;

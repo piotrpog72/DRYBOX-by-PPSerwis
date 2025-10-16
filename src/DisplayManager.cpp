@@ -1,9 +1,10 @@
 // =================================================================
 // Plik:          DisplayManager.cpp
-// Wersja:        5.25
-// Data:          15.10.2025
+// Wersja:        5.26
+// Data:          16.10.2025
 // Opis Zmian:
 //  - [FEATURE] Dodano branding na ekranie startowym.
+//  - [FEATURE] Dodano symbol fazy grzania obok nazwy profilu.
 //  - [FIX] Ukryto informację o kolorze dla pustych rolek.
 // =================================================================
 #include "DisplayManager.h"
@@ -31,9 +32,8 @@ void DisplayManager::setContrast(uint8_t value) {
 }
 
 void DisplayManager::showStartupScreen(const DryerState& s) {
-    // ================== POCZĄTEK ZMIANY v5.25 ==================
     statusLcd.setCursor(0, 0); statusLcd.print("DRYBOX " FW_VERSION);
-    statusLcd.setCursor(0, 1); statusLcd.print("by PPSerwis     "); // Dopasowane do 16 znaków
+    statusLcd.setCursor(0, 1); statusLcd.print("by PPSerwis  ");
 
     interactiveGcd.clearBuffer(); interactiveGcd.setFontMode(1); interactiveGcd.setDrawColor(1);
     
@@ -41,8 +41,7 @@ void DisplayManager::showStartupScreen(const DryerState& s) {
     interactiveGcd.drawStr(10, 28, "DRYBOX " FW_VERSION);
     
     interactiveGcd.setFont(u8g2_font_6x12_tr);
-    interactiveGcd.drawStr(10, 48, "by PPSerwis AIRSOFT & more");
-    // =================== KONIEC ZMIANY v5.25 ===================
+    interactiveGcd.drawStr(10, 48, "by PPSerwis ");
     
     interactiveGcd.sendBuffer();
 }
@@ -203,11 +202,9 @@ void DisplayManager::drawSpoolStatusScreen(const DryerState& state) {
         snprintf(numBuf, sizeof(numBuf), "%d", i + 1);
         interactiveGcd.drawStr(colX + 12, 28, numBuf);
         interactiveGcd.drawStr(colX, 40, FILAMENT_TYPES[state.spools[i].typeIndex]);
-        // ================== POCZĄTEK ZMIANY v5.25 ==================
-        if (state.spools[i].typeIndex != 0) { // Rysuj kolor tylko jeśli rolka nie jest pusta
+        if (state.spools[i].typeIndex != 0) {
             interactiveGcd.drawStr(colX, 52, FILAMENT_COLORS_SHORT[state.spools[i].colorIndex]);
         }
-        // =================== KONIEC ZMIANY v5.25 ===================
     }
     interactiveGcd.drawVLine(32, 20, 36);
     interactiveGcd.drawVLine(64, 20, 36);
@@ -251,8 +248,17 @@ void DisplayManager::updateInteractiveDisplay(const DryerState& s, const String&
                 textWidth = interactiveGcd.getStrWidth("PRZEGRZANIE");
                 interactiveGcd.drawStr((128 - textWidth) / 2, 50, "PRZEGRZANIE");
             } else {
+                String profileString = p;
+                if (s.isHeaterOn) {
+                    switch (s.currentPhase) {
+                        case PHASE_BOOST: profileString += " |"; break;
+                        case PHASE_RAMP:  profileString += " /"; break;
+                        case PHASE_PID:   profileString += " ~"; break;
+                        default: break;
+                    }
+                }
                 interactiveGcd.setFont(u8g2_font_7x13B_tr);
-                interactiveGcd.drawStr(2, 13, p.c_str());
+                interactiveGcd.drawStr(2, 13, profileString.c_str());
             
                 interactiveGcd.setFont(u8g2_font_open_iconic_all_2x_t);
                 const int icon_w = 16;

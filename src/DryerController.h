@@ -1,8 +1,9 @@
 // =================================================================
 // Plik:          DryerController.h
-// Wersja:        5.20
+// Wersja:        5.26
+// Data:          16.10.2025
 // Opis Zmian:
-//  - Zmieniono AsyncWebServer na standardowy WebServer.
+//  - [FIX] Dodano brakującą deklarację funkcji startDryingProcess.
 // =================================================================
 #ifndef DRYERCONTROLLER_H
 #define DRYERCONTROLLER_H
@@ -48,5 +49,9 @@ private:
   void handleCommandRequest();
   void handleFileRequest(String path, String contentType);
   void handleNotFound();
+  
+  // ================== POCZĄTEK ZMIANY v5.26 ==================
+  void startDryingProcess();
+  // =================== KONIEC ZMIANY v5.26 ===================
 };
 #endif

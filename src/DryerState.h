@@ -1,8 +1,11 @@
 // =================================================================
 // Plik:          DryerState.h
-// Wersja:        5.20
+// Wersja:        5.26
+// Data:          16.10.2025
 // Opis Zmian:
-//  - Dodano nowe zmienne stanu dla logiki Boost/Rampa.
+//  - [REFACTOR] Wprowadzono enum `HeatingPhase` do zarządzania
+//    fazami grzania.
+//  - [REFACTOR] Usunięto nieużywaną flagę `isBoostActive`.
 // =================================================================
 #ifndef DRYERSTATE_H
 #define DRYERSTATE_H
@@ -18,6 +21,14 @@ enum ProfileType { PROFILE_PLA,
                    PROFILE_PETG,
                    PROFILE_ABS,
                    PROFILE_CUSTOM };
+
+// ================== POCZĄTEK ZMIANY v5.26 ==================
+enum HeatingPhase { PHASE_OFF,
+                    PHASE_BOOST,
+                    PHASE_RAMP,
+                    PHASE_PID };
+// =================== KONIEC ZMIANY v5.26 ===================
+
 struct FilamentProfile {
   String name;
   float temp;
@@ -76,7 +87,10 @@ struct DryerState {
   double pid_kd = PID_KD_DEFAULT;
   double pidOutput = 0;
 
-  bool isBoostActive = false;
+  // ================== POCZĄTEK ZMIANY v5.26 ==================
+  HeatingPhase currentPhase = PHASE_OFF; // Zastępuje isBoostActive
+  // =================== KONIEC ZMIANY v5.26 ===================
+
   uint8_t boostMaxTime_min = DEFAULT_BOOST_TIME_MIN;
   float boostTempThreshold = DEFAULT_BOOST_TEMP_THRESHOLD;
   float boostPsuTempLimit = DEFAULT_BOOST_PSU_TEMP_LIMIT;

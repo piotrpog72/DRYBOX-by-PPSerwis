@@ -1,7 +1,9 @@
-/* style.css wersja 5.25 
-    15.10.2025 
+/*
+  Plik:     style.css
+  Wersja:   5.26    
+  Data:     16.10.2025
+*/
 
- --- Globalne Style --- */
 :root {
     --primary-color: #007BFF;
     --secondary-color: #6c757d;
@@ -10,12 +12,10 @@
     --text-color: #333;
     --border-color: #eee;
     --shadow: 0 6px 20px rgba(0,0,0,0.08);
-    /* ================== POCZĄTEK ZMIANY v5.25 ================== */
     --start-color: #28a745;
     --start-color-hover: #218838;
     --stop-color: #dc3545;
     --stop-color-hover: #c82333;
-    /* =================== KONIEC ZMIANY v5.25 =================== */
 }
 
 body {
@@ -39,7 +39,7 @@ header {
 header h1 {
     color: var(--secondary-color);
     font-weight: 300;
-    font-size: 1.8em; /* Dalsze zmniejszenie dla brandingu */
+    font-size: 1.8em;
     margin: 0.5em 0;
 }
 
@@ -79,18 +79,29 @@ header h1 {
 .status-icons {
     display: flex;
     justify-content: center;
+    align-items: center; /* Lepsze wyrównanie ikon */
     gap: 1.5em;
-    margin-bottom: 1.5em;
+    margin-bottom: 1em;
     font-size: 2em;
 }
 
 .icon {
     opacity: 0.2;
     transition: opacity 0.3s;
+    line-height: 1; /* Zapobiega "podskakiwaniu" layoutu */
 }
 
 .icon.active {
     opacity: 1;
+}
+
+.phase-status {
+    text-align: center;
+    color: var(--secondary-color);
+    font-weight: bold;
+    height: 1.2em;
+    margin-bottom: 1em;
+    font-size: 0.9em;
 }
 
 .controls {
@@ -108,7 +119,6 @@ header h1 {
     background-color: #fff;
 }
 
-/* ================== POCZĄTEK ZMIANY v5.25 ================== */
 .controls button {
     color: white;
     transition: background-color 0.3s, opacity 0.3s;
@@ -123,8 +133,6 @@ header h1 {
     opacity: 0.5;
     cursor: not-allowed;
 }
-/* =================== KONIEC ZMIANY v5.25 =================== */
-
 
 /* --- Sekcja szczegółowa --- */
 .details-grid {
@@ -138,8 +146,6 @@ header h1 {
     min-width: 260px; 
 }
 
-/* ================== POCZĄTEK ZMIANY v5.25 ================== */
-/* --- Nowa wizualizacja czujników --- */
 .chamber-view {
     position: relative;
     width: 240px;
@@ -167,7 +173,6 @@ header h1 {
     transform: translate(-50%, -50%);
     border: 1px dashed var(--secondary-color);
 }
-/* =================== KONIEC ZMIANY v5.25 =================== */
 
 /* Style dla Statusu Rolek */
 .spool-status h3 {
@@ -198,7 +203,7 @@ header h1 {
     flex-direction: column;
     align-items: center;
     font-size: 0.8em;
-    min-height: 2.5em; /* Zapewnia stałą wysokość nawet bez tekstu */
+    min-height: 2.5em;
 }
 .color-dot {
     display: inline-block;

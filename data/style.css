@@ -1,6 +1,6 @@
 /*
   Plik:     style.css
-  Wersja:   5.26    
+  Wersja:   5.28
   Data:     16.10.2025
 */
 
@@ -34,6 +34,7 @@ body {
 header {
     text-align: center;
     margin-bottom: 1.5em; 
+    position: relative;
 }
 
 header h1 {
@@ -42,6 +43,74 @@ header h1 {
     font-size: 1.8em;
     margin: 0.5em 0;
 }
+
+/* ================== POCZĄTEK ZMIANY v5.28 ================== */
+.settings-link {
+    position: absolute;
+    top: 50%;
+    right: 10px;
+    transform: translateY(-50%);
+    text-decoration: none;
+    color: var(--primary-color);
+    padding: 8px 12px;
+    border-radius: 8px;
+    transition: background-color 0.2s;
+}
+.settings-link:hover {
+    background-color: #e9ecef;
+}
+
+/* Style dla strony ustawień */
+.form-grid {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 1em;
+    align-items: center;
+}
+.form-grid label {
+    font-weight: 500;
+    text-align: right;
+}
+.form-grid input {
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    width: 100%;
+    box-sizing: border-box;
+}
+.form-grid input[type="checkbox"] {
+    width: auto;
+    justify-self: start;
+}
+.form-actions {
+    margin-top: 1.5em;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+#save-btn {
+    background-color: var(--start-color);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+#save-btn:hover {
+    background-color: var(--start-color-hover);
+}
+.back-link {
+    color: var(--primary-color);
+    text-decoration: none;
+}
+#save-status {
+    margin-top: 1em;
+    text-align: center;
+    font-weight: bold;
+    color: var(--start-color);
+}
+/* =================== KONIEC ZMIANY v5.28 =================== */
 
 .card {
     background-color: var(--card-bg-color);

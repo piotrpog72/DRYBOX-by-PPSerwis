@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ustawienia - Drybox Control</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Ustawienia Drybox</h1>
+        </header>
+        <main>
+            <form id="settings-form">
+                <div class="card">
+                    <h2>Profil Własny</h2>
+                    <div class="form-grid">
+                        <label for="customTemp">Temperatura (°C):</label>
+                        <input type="number" id="customTemp" name="customTemp" min="30" max="90" step="1">
+                        <label for="customHum">Wilgotność (%):</label>
+                        <input type="number" id="customHum" name="customHum" min="10" max="50" step="1">
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2>Ustawienia Ogólne</h2>
+                    <div class="form-grid">
+                        <label for="soundsEnabled">Dźwięki:</label>
+                        <input type="checkbox" id="soundsEnabled" name="soundsEnabled">
+                        <label for="glcdContrast">Kontrast GLCD:</label>
+                        <input type="range" id="glcdContrast" name="glcdContrast" min="0" max="255" step="1">
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <h2>Sterowanie Grzaniem</h2>
+                     <div class="form-grid">
+                        <label for="boostMaxTime_min">Boost - Czas Max (min):</label>
+                        <input type="number" id="boostMaxTime_min" name="boostMaxTime_min" min="1" max="30">
+                        <label for="boostTempThreshold">Boost - Próg Temp. (°C):</label>
+                        <input type="number" id="boostTempThreshold" name="boostTempThreshold" min="30" max="60">
+                         <label for="boostPsuTempLimit">Boost - Limit PSU (°C):</label>
+                        <input type="number" id="boostPsuTempLimit" name="boostPsuTempLimit" min="30" max="60">
+                        <label for="rampPowerPercent">Rampa - Moc (%):</label>
+                        <input type="number" id="rampPowerPercent" name="rampPowerPercent" min="10" max="100">
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2>Nastawy PID</h2>
+                    <div class="form-grid">
+                        <label for="pid_kp">Kp (Wzmocnienie):</label>
+                        <input type="number" id="pid_kp" name="pid_kp" min="0" max="100" step="0.1">
+                        <label for="pid_ki">Ki (Całka):</label>
+                        <input type="number" id="pid_ki" name="pid_ki" min="0" max="100" step="0.1">
+                        <label for="pid_kd">Kd (Różniczka):</label>
+                        <input type="number" id="pid_kd" name="pid_kd" min="0" max="100" step="0.1">
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2>Zasilacz</h2>
+                    <div class="form-grid">
+                        <label for="psuFanOnTemp">Wentylator - Włącz (°C):</label>
+                        <input type="number" id="psuFanOnTemp" name="psuFanOnTemp" min="30" max="60">
+                        <label for="psuFanOffHysteresis">Wentylator - Histereza (°C):</label>
+                        <input type="number" id="psuFanOffHysteresis" name="psuFanOffHysteresis" min="2" max="15">
+                        <label for="psuOverheatLimit">Alarm Przegrzania (°C):</label>
+                        <input type="number" id="psuOverheatLimit" name="psuOverheatLimit" min="45" max="70">
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" id="save-btn">Zapisz Ustawienia</button>
+                    <a href="/" class="back-link">Powrót do pulpitu</a>
+                </div>
+            </form>
+            <div id="save-status"></div>
+        </main>
+    </div>
+
+    <script>
+        async function loadSettings() {
+            try {
+                const response = await fetch('/get_settings');
+                if (!response.ok) {
+                    throw new Error('Błąd pobierania ustawień');
+                }
+                const settings = await response.json();
+                
+                // Wypełnianie formularza
+                document.getElementById('customTemp').value = settings.customTemp;
+                document.getElementById('customHum').value = settings.customHum;
+                document.getElementById('soundsEnabled').checked = settings.soundsEnabled;
+                document.getElementById('glcdContrast').value = settings.glcdContrast;
+                document.getElementById('boostMaxTime_min').value = settings.boostMaxTime_min;
+                document.getElementById('boostTempThreshold').value = settings.boostTempThreshold;
+                document.getElementById('boostPsuTempLimit').value = settings.boostPsuTempLimit;
+                document.getElementById('rampPowerPercent').value = settings.rampPowerPercent;
+                document.getElementById('pid_kp').value = settings.pid_kp;
+                document.getElementById('pid_ki').value = settings.pid_ki;
+                document.getElementById('pid_kd').value = settings.pid_kd;
+                document.getElementById('psuFanOnTemp').value = settings.psuFanOnTemp;
+                document.getElementById('psuFanOffHysteresis').value = settings.psuFanOffHysteresis;
+                document.getElementById('psuOverheatLimit').value = settings.psuOverheatLimit;
+
+            } catch (error) {
+                document.getElementById('save-status').textContent = 'Błąd: ' + error.message;
+            }
+        }
+
+        document.getElementById('settings-form').addEventListener('submit', async function(event) {
+            event.preventDefault();
+            const statusDiv = document.getElementById('save-status');
+            statusDiv.textContent = 'Zapisywanie...';
+
+            const formData = new FormData(this);
+            // FormData nie obsługuje poprawnie checkboxów, które nie są zaznaczone
+            formData.set('soundsEnabled', document.getElementById('soundsEnabled').checked);
+
+            try {
+                const response = await fetch('/save_settings', {
+                    method: 'POST',
+                    body: new URLSearchParams(formData)
+                });
+
+                if (response.ok) {
+                    statusDiv.textContent = 'Ustawienia zapisane pomyślnie!';
+                    setTimeout(() => statusDiv.textContent = '', 3000);
+                } else {
+                    throw new Error('Błąd serwera');
+                }
+            } catch (error) {
+                statusDiv.textContent = 'Błąd zapisu: ' + error.message;
+            }
+        });
+
+        window.addEventListener('load', loadSettings);
+    </script>
+</body>
+</html>

@@ -1,6 +1,6 @@
 // =================================================================
 // Plik:          config.h
-// Wersja:        5.26
+// Wersja:        5.28
 // Opis Zmian:
 //  - Podniesienie numeru wersji FW_VERSION.
 //  - Dodano domyślne stałe dla nowej logiki grzania (Boost/Rampa).
@@ -8,12 +8,16 @@
 //  - poprawki w wyświetlaniu ikony grzania
 //  - poprawki w logice wyświetlania ekranu interaktywnego
 //  - poprawki w logice suszenia w trybie wilgotności
+//  - poprawki w logice obsługi przycisków enkodera
+//  - poprawki w logice odczytu czujników temperatury   
+//  - wyodrębnienie całej logiki webserwera do nowej klasy WebManager 
+//  - Dodano obsługę zapisu ustawień z Web UI.       
 // =================================================================
 #ifndef CONFIG_H
 #define CONFIG_H
 #include <DallasTemperature.h>
 
-#define FW_VERSION "v5.26" // Wersja z zaawansowanym sterowaniem grzaniem
+#define FW_VERSION "v5.28" // Wersja z zaawansowanym sterowaniem grzaniem
 #define I2C_SDA_PIN 21
 #define I2C_SCL_PIN 22
 #define GLCD_CLK_PIN   33

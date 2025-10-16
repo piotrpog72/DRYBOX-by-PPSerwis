@@ -1,6 +1,6 @@
 // =================================================================
 // Plik:          DisplayManager.cpp
-// Wersja:        5.26
+// Wersja:        5.28
 // Data:          16.10.2025
 // Opis Zmian:
 //  - [FEATURE] Dodano branding na ekranie startowym.

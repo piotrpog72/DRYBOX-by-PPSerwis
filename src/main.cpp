@@ -1,6 +1,6 @@
 /*
     Projekt: Suszarka do filamentu 3D
-    Wersja: v5.26
+    Wersja: v5.28
     Data: 16.10.2025
     Autor: PPSerwis & Gemini  
 */

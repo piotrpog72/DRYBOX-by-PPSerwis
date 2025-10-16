@@ -1,9 +1,9 @@
 // =================================================================
 // Plik:          WebManager.h
-// Wersja:        5.28
-// Data:          16.10.2025
+// Wersja:        5.29
+// Data:          17.10.2025
 // Opis:
-//  - Dodano endpointy i handlery dla strony ustawień.
+//  - Zaktualizowano interfejs klasy o obsługę etykiet rolek.
 // =================================================================
 #ifndef WEBMANAGER_H
 #define WEBMANAGER_H
@@ -33,11 +33,9 @@ private:
     void handleNotFound();
     void handleFileRequest(const String& path, const String& contentType);
 
-    // ================== POCZĄTEK ZMIANY v5.28 ==================
     void handleSettingsPage();
     void handleGetSettings();
     void handleSaveSettings();
-    // =================== KONIEC ZMIANY v5.28 ===================
 };
 
 #endif

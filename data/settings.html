@@ -24,6 +24,11 @@
                 </div>
 
                 <div class="card">
+                    <h2>Etykiety Rolek</h2>
+                    <div id="spool-settings-container" class="form-grid-spools">
+                        </div>
+                </div>
+                <div class="card">
                     <h2>Ustawienia Ogólne</h2>
                     <div class="form-grid">
                         <label for="soundsEnabled">Dźwięki:</label>
@@ -81,15 +86,48 @@
     </div>
 
     <script>
+        // ================== POCZĄTEK ZMIANY v5.29 ==================
+        const FILAMENT_TYPES = ["Pusty", "PLA", "PETG", "ABS", "ASA", "TPU", "Inny"];
+        const FILAMENT_COLORS = ["Brak", "Biały", "Czarny", "Szary", "Czerwony", "Zielony", "Niebieski", "Żółty", "Pomarańczowy", "Fioletowy", "Naturalny", "Srebrny", "Złoty", "Multikolor"];
+
+        function generateSpoolSettings() {
+            const container = document.getElementById('spool-settings-container');
+            for (let i = 0; i < 4; i++) {
+                const label = document.createElement('label');
+                label.textContent = `Rolka ${i + 1}:`;
+                container.appendChild(label);
+
+                const selectsWrapper = document.createElement('div');
+                selectsWrapper.className = 'selects-wrapper';
+
+                const typeSelect = document.createElement('select');
+                typeSelect.id = `spool_type_${i}`;
+                typeSelect.name = `spool_type_${i}`;
+                FILAMENT_TYPES.forEach((type, index) => {
+                    const option = new Option(type, index);
+                    typeSelect.add(option);
+                });
+                selectsWrapper.appendChild(typeSelect);
+
+                const colorSelect = document.createElement('select');
+                colorSelect.id = `spool_color_${i}`;
+                colorSelect.name = `spool_color_${i}`;
+                FILAMENT_COLORS.forEach((color, index) => {
+                    const option = new Option(color, index);
+                    colorSelect.add(option);
+                });
+                selectsWrapper.appendChild(colorSelect);
+                container.appendChild(selectsWrapper);
+            }
+        }
+        // =================== KONIEC ZMIANY v5.29 ===================
+
         async function loadSettings() {
             try {
                 const response = await fetch('/get_settings');
-                if (!response.ok) {
-                    throw new Error('Błąd pobierania ustawień');
-                }
+                if (!response.ok) throw new Error('Błąd pobierania ustawień');
                 const settings = await response.json();
                 
-                // Wypełnianie formularza
                 document.getElementById('customTemp').value = settings.customTemp;
                 document.getElementById('customHum').value = settings.customHum;
                 document.getElementById('soundsEnabled').checked = settings.soundsEnabled;
@@ -105,6 +143,15 @@
                 document.getElementById('psuFanOffHysteresis').value = settings.psuFanOffHysteresis;
                 document.getElementById('psuOverheatLimit').value = settings.psuOverheatLimit;
 
+                // ================== POCZĄTEK ZMIANY v5.29 ==================
+                if (settings.spools) {
+                    settings.spools.forEach((spool, i) => {
+                        document.getElementById(`spool_type_${i}`).value = spool.type;
+                        document.getElementById(`spool_color_${i}`).value = spool.color;
+                    });
+                }
+                // =================== KONIEC ZMIANY v5.29 ===================
+
             } catch (error) {
                 document.getElementById('save-status').textContent = 'Błąd: ' + error.message;
             }
@@ -116,7 +163,6 @@
             statusDiv.textContent = 'Zapisywanie...';
 
             const formData = new FormData(this);
-            // FormData nie obsługuje poprawnie checkboxów, które nie są zaznaczone
             formData.set('soundsEnabled', document.getElementById('soundsEnabled').checked);
 
             try {
@@ -136,7 +182,12 @@
             }
         });
 
-        window.addEventListener('load', loadSettings);
+        // ================== POCZĄTEK ZMIANY v5.29 ==================
+        window.addEventListener('load', () => {
+            generateSpoolSettings();
+            loadSettings();
+        });
+        // =================== KONIEC ZMIANY v5.29 ===================
     </script>
 </body>
 </html>

@@ -1,9 +1,9 @@
 // =================================================================
 // Plik:          WebManager.cpp
-// Wersja:        5.28
-// Data:          16.10.2025
+// Wersja:        5.29
+// Data:          17.10.2025
 // Opis:
-//  - Implementacja logiki dla strony ustawień.
+//  - Implementacja pobierania i zapisu etykiet rolek.
 // =================================================================
 #include "WebManager.h"
 #include <LittleFS.h>
@@ -18,11 +18,9 @@ void WebManager::begin() {
     _server.on("/data", HTTP_GET, [this](){ this->handleData(); });
     _server.on("/command", HTTP_GET, [this](){ this->handleCommand(); });
     
-    // ================== POCZĄTEK ZMIANY v5.28 ==================
     _server.on("/settings", HTTP_GET, [this](){ this->handleSettingsPage(); });
     _server.on("/get_settings", HTTP_GET, [this](){ this->handleGetSettings(); });
     _server.on("/save_settings", HTTP_POST, [this](){ this->handleSaveSettings(); });
-    // =================== KONIEC ZMIANY v5.28 ===================
 
     _server.onNotFound([this](){ this->handleNotFound(); });
     _server.begin();
@@ -85,6 +83,15 @@ void WebManager::handleGetSettings() {
     doc["psuFanOffHysteresis"] = _state.psuFanOffHysteresis;
     doc["psuOverheatLimit"] = _state.psuOverheatLimit;
 
+    // ================== POCZĄTEK ZMIANY v5.29 ==================
+    JsonArray spools = doc.createNestedArray("spools");
+    for (int i=0; i<4; i++) {
+        JsonObject spool = spools.createNestedObject();
+        spool["type"] = _state.spools[i].typeIndex;
+        spool["color"] = _state.spools[i].colorIndex;
+    }
+    // =================== KONIEC ZMIANY v5.29 ===================
+
     String json;
     serializeJson(doc, json);
     _server.send(200, "application/json", json);
@@ -114,6 +121,20 @@ void WebManager::handleSaveSettings() {
     if (_server.hasArg("psuFanOnTemp")) _state.psuFanOnTemp = _server.arg("psuFanOnTemp").toFloat();
     if (_server.hasArg("psuFanOffHysteresis")) _state.psuFanOffHysteresis = _server.arg("psuFanOffHysteresis").toFloat();
     if (_server.hasArg("psuOverheatLimit")) _state.psuOverheatLimit = _server.arg("psuOverheatLimit").toFloat();
+
+    // ================== POCZĄTEK ZMIANY v5.29 ==================
+    // Etykiety rolek
+    for (int i = 0; i < 4; i++) {
+        String type_arg = "spool_type_" + String(i);
+        String color_arg = "spool_color_" + String(i);
+        if (_server.hasArg(type_arg)) {
+            _state.spools[i].typeIndex = _server.arg(type_arg).toInt();
+        }
+        if (_server.hasArg(color_arg)) {
+            _state.spools[i].colorIndex = _server.arg(color_arg).toInt();
+        }
+    }
+    // =================== KONIEC ZMIANY v5.29 ===================
 
     _lastCommand = "SAVE_SETTINGS";
     _server.send(200, "text/plain", "OK");

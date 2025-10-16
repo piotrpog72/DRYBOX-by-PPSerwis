@@ -1,7 +1,7 @@
 /*
   Plik:     style.css
-  Wersja:   5.28
-  Data:     16.10.2025
+  Wersja:   5.29
+  Data:     17.10.2025
 */
 
 :root {
@@ -44,7 +44,6 @@ header h1 {
     margin: 0.5em 0;
 }
 
-/* ================== POCZĄTEK ZMIANY v5.28 ================== */
 .settings-link {
     position: absolute;
     top: 50%;
@@ -53,25 +52,36 @@ header h1 {
     text-decoration: none;
     color: var(--primary-color);
     padding: 8px 12px;
-    border-radius: 8px;
+    border-radius: 50%;
     transition: background-color 0.2s;
+    font-size: 1.5em;
+    line-height: 1;
 }
 .settings-link:hover {
     background-color: #e9ecef;
 }
 
-/* Style dla strony ustawień */
-.form-grid {
+.form-grid, .form-grid-spools {
     display: grid;
     grid-template-columns: auto 1fr;
     gap: 1em;
     align-items: center;
 }
-.form-grid label {
+
+.form-grid-spools {
+    gap: 1.2em 1em;
+}
+.selects-wrapper {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.8em;
+}
+
+.form-grid label, .form-grid-spools label {
     font-weight: 500;
     text-align: right;
 }
-.form-grid input {
+.form-grid input, .form-grid-spools select {
     padding: 8px;
     border: 1px solid #ccc;
     border-radius: 4px;
@@ -110,7 +120,6 @@ header h1 {
     font-weight: bold;
     color: var(--start-color);
 }
-/* =================== KONIEC ZMIANY v5.28 =================== */
 
 .card {
     background-color: var(--card-bg-color);
@@ -148,7 +157,7 @@ header h1 {
 .status-icons {
     display: flex;
     justify-content: center;
-    align-items: center; /* Lepsze wyrównanie ikon */
+    align-items: center;
     gap: 1.5em;
     margin-bottom: 1em;
     font-size: 2em;
@@ -157,7 +166,7 @@ header h1 {
 .icon {
     opacity: 0.2;
     transition: opacity 0.3s;
-    line-height: 1; /* Zapobiega "podskakiwaniu" layoutu */
+    line-height: 1;
 }
 
 .icon.active {
@@ -203,7 +212,6 @@ header h1 {
     cursor: not-allowed;
 }
 
-/* --- Sekcja szczegółowa --- */
 .details-grid {
     display: flex;
     flex-wrap: wrap;
@@ -243,7 +251,6 @@ header h1 {
     border: 1px dashed var(--secondary-color);
 }
 
-/* Style dla Statusu Rolek */
 .spool-status h3 {
     margin-bottom: 1.5em;
 }
@@ -296,7 +303,6 @@ header h1 {
 .color-dot.empty::before { transform: translate(-50%, -50%) rotate(45deg); }
 .color-dot.empty::after { transform: translate(-50%, -50%) rotate(-45deg); }
 
-/* --- Układ responsywny dla dużych ekranów --- */
 @media (min-width: 1200px) {
     .container {
         max-width: 1600px; 

@@ -1,9 +1,12 @@
 // =================================================================
 // Plik:          WebManager.cpp
-// Wersja:        5.29
+// Wersja:        5.30
 // Data:          17.10.2025
-// Opis:
-//  - Implementacja pobierania i zapisu etykiet rolek.
+// Autor:         PPSerwis AIRSOFT & more
+// Copyright (c) 2025 PPSerwis AIRSOFT & more
+// Licencja:      MIT License (zobacz plik LICENSE w repozytorium)
+// Opis Zmian:
+//  - [CHORE] Dodano informacje o prawach autorskich i licencji.
 // =================================================================
 #include "WebManager.h"
 #include <LittleFS.h>

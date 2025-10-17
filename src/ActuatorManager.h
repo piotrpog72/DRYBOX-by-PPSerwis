@@ -1,9 +1,12 @@
 // =================================================================
 // Plik:          ActuatorManager.h
-// Wersja:        5.28
-// Data:          16.10.2025
+// Wersja:        5.30
+// Data:          17.10.2025
+// Autor:         PPSerwis AIRSOFT & more
+// Copyright (c) 2025 PPSerwis AIRSOFT & more
+// Licencja:      MIT License (zobacz plik LICENSE w repozytorium)
 // Opis Zmian:
-//  - Dodano zmienne do obsługi "wolnego" PWM.
+//  - [CHORE] Dodano informacje o prawach autorskich i licencji.
 // =================================================================
 #ifndef ACTUATORMANAGER_H
 #define ACTUATORMANAGER_H

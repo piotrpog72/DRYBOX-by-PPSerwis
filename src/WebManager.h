@@ -1,9 +1,12 @@
 // =================================================================
 // Plik:          WebManager.h
-// Wersja:        5.29
+// Wersja:        5.30
 // Data:          17.10.2025
-// Opis:
-//  - Zaktualizowano interfejs klasy o obsługę etykiet rolek.
+// Autor:         PPSerwis AIRSOFT & more
+// Copyright (c) 2025 PPSerwis AIRSOFT & more
+// Licencja:      MIT License (zobacz plik LICENSE w repozytorium)
+// Opis Zmian:
+//  - [CHORE] Dodano informacje o prawach autorskich i licencji.
 // =================================================================
 #ifndef WEBMANAGER_H
 #define WEBMANAGER_H

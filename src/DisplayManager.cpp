@@ -1,11 +1,12 @@
 // =================================================================
 // Plik:          DisplayManager.cpp
-// Wersja:        5.28
-// Data:          16.10.2025
+// Wersja:        5.30
+// Data:          17.10.2025
+// Autor:         PPSerwis AIRSOFT & more
+// Copyright (c) 2025 PPSerwis AIRSOFT & more
+// Licencja:      MIT License (zobacz plik LICENSE w repozytorium)
 // Opis Zmian:
-//  - [FEATURE] Dodano branding na ekranie startowym.
-//  - [FEATURE] Dodano symbol fazy grzania obok nazwy profilu.
-//  - [FIX] Ukryto informację o kolorze dla pustych rolek.
+//  - [CHORE] Dodano informacje o prawach autorskich i licencji.
 // =================================================================
 #include "DisplayManager.h"
 #include <Arduino.h>

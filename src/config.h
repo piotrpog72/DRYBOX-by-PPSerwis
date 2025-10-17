@@ -1,24 +1,19 @@
 // =================================================================
 // Plik:          config.h
-// Wersja:        5.29
+// Wersja:        5.30
+// Data:          17.10.2025
+// Autor:         PPSerwis AIRSOFT & more
+// Copyright (c) 2025 PPSerwis AIRSOFT & more
+// Licencja:      MIT License (zobacz plik LICENSE w repozytorium)
 // Opis Zmian:
+//  - [CHORE] Dodano informacje o prawach autorskich i licencji.
 //  - Podniesienie numeru wersji FW_VERSION.
-//  - Dodano domyślne stałe dla nowej logiki grzania (Boost/Rampa).
-//  - naprawiony serwer WWWW
-//  - poprawki w wyświetlaniu ikony grzania
-//  - poprawki w logice wyświetlania ekranu interaktywnego
-//  - poprawki w logice suszenia w trybie wilgotności
-//  - poprawki w logice obsługi przycisków enkodera
-//  - poprawki w logice odczytu czujników temperatury   
-//  - wyodrębnienie całej logiki webserwera do nowej klasy WebManager 
-//  - Dodano obsługę zapisu ustawień z Web UI.   
-//  - Dodano funkcje w zakładce ustawienia    
 // =================================================================
 #ifndef CONFIG_H
 #define CONFIG_H
 #include <DallasTemperature.h>
 
-#define FW_VERSION "v5.29" 
+#define FW_VERSION "v5.30" 
 #define I2C_SDA_PIN 21
 #define I2C_SCL_PIN 22
 #define GLCD_CLK_PIN   33
@@ -76,4 +71,4 @@ const DeviceAddress SENSOR_ADDRESS_FRONT_RIGHT = {0x28, 0x5B, 0x18, 0xBC, 0x00, 
 #define DEFAULT_BOOST_PSU_TEMP_LIMIT 50.0
 #define DEFAULT_RAMP_POWER_PERCENT 70
 
-#endif
+#endif;

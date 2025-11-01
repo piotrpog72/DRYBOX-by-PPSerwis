@@ -1,12 +1,13 @@
 // =================================================================
 // Plik:          ActuatorManager.cpp
-// Wersja:        5.30
-// Data:          17.10.2025
+// Wersja:        5.32d
+// Data:          23.10.2025
 // Autor:         PPSerwis AIRSOFT & more
 // Copyright (c) 2025 PPSerwis AIRSOFT & more
 // Licencja:      MIT License (zobacz plik LICENSE w repozytorium)
 // Opis Zmian:
-//  - [CHORE] Dodano informacje o prawach autorskich i licencji.
+//  - [FIX] Dodano jawne ustawienie pinów na LOW w funkcji begin()
+//    dla logiki Active HIGH (LOW=OFF).
 // =================================================================
 #include <Arduino.h>
 #include "ActuatorManager.h"
@@ -14,26 +15,46 @@
 ActuatorManager::ActuatorManager() {}
 
 void ActuatorManager::begin() {
-    pinMode(HEATER_PIN, OUTPUT);
-    pinMode(HEATER_FAN_PIN, OUTPUT);
+    pinMode(HEATER_PIN_MAIN, OUTPUT);
+    pinMode(HEATER_PIN_AUX1, OUTPUT);
+    pinMode(HEATER_PIN_AUX2, OUTPUT);
     pinMode(CHAMBER_FAN_PIN, OUTPUT);
-    pinMode(POWER_SUPPLY_FAN_PIN, OUTPUT);
+    pinMode(VENTILATION_FAN_PIN, OUTPUT);
     pinMode(BUZZER_PIN, OUTPUT);
     pinMode(HEATER_LED_PIN, OUTPUT);
+
+    // ================== POCZĄTEK ZMIANY v5.32d ==================
+    // Jawne ustawienie stanu początkowego LOW (OFF dla Active HIGH)
+    digitalWrite(HEATER_PIN_MAIN, LOW);
+    digitalWrite(HEATER_PIN_AUX1, LOW);
+    digitalWrite(HEATER_PIN_AUX2, LOW);
+    digitalWrite(CHAMBER_FAN_PIN, LOW);
+    digitalWrite(VENTILATION_FAN_PIN, LOW);
+    digitalWrite(HEATER_LED_PIN, LOW);
+    noTone(BUZZER_PIN); // Upewnij się, że buzzer jest cicho
+    // =================== KONIEC ZMIANY v5.32d ===================
+
+    // resetAllForced() dodatkowo potwierdzi stan LOW
     resetAllForced();
-    windowStartTime = millis();
 }
 
-void ActuatorManager::setHeater(bool state) {
-    if (state != isHeaterOn_internal) {
-        digitalWrite(HEATER_PIN, state);
-        isHeaterOn_internal = state;
-        if (!isHeaterOn_internal) { 
-            heaterOffTime = millis();
-            setHeaterFan(true); 
-        } else { 
-             setHeaterFan(true); 
-        }
+void ActuatorManager::setHeaterPowerLevel(int level) {
+    // Logika standardowa (Active HIGH)
+    bool mainState = (level >= 1);
+    bool aux1State = (level >= 2);
+    bool aux2State = (level >= 3);
+
+    if (mainState != isHeaterMainOn_internal) {
+        digitalWrite(HEATER_PIN_MAIN, mainState ? HIGH : LOW);
+        isHeaterMainOn_internal = mainState;
+    }
+    if (aux1State != isHeaterAux1On_internal) {
+        digitalWrite(HEATER_PIN_AUX1, aux1State ? HIGH : LOW);
+        isHeaterAux1On_internal = aux1State;
+    }
+    if (aux2State != isHeaterAux2On_internal) {
+        digitalWrite(HEATER_PIN_AUX2, aux2State ? HIGH : LOW);
+        isHeaterAux2On_internal = aux2State;
     }
 }
 
@@ -42,30 +63,17 @@ void ActuatorManager::update(DryerState& state) {
         return;
     }
 
-    // Sterowanie grzałką (LOGIKA CZASOWO-PROPORCJONALNA)
+    // Sterowanie grzałkami
     if (state.currentMode != MODE_IDLE && !state.isInAlarmState) {
-        unsigned long now = millis();
-        if (now - windowStartTime > windowSize) {
-            windowStartTime = now;
-        }
-        
-        long onTime = (state.pidOutput * windowSize) / 255;
-        
-        if ((now - windowStartTime) < onTime) {
-            setHeater(true);
-        } else {
-            setHeater(false);
-        }
+        setHeaterPowerLevel((int)state.pidOutput);
     } else {
-        setHeater(false);
+        setHeaterPowerLevel(0);
     }
 
-    // Sterowanie wentylatorem komory
-    // ================== POCZĄTEK ZMIANY v5.26 ==================
+    // Wentylator komory
     if (state.currentPhase == PHASE_BOOST) {
-        setChamberFan(true); // Wymuszona praca w fazie Boost
+        setChamberFan(true);
     } else if (state.currentMode != MODE_IDLE) {
-    // =================== KONIEC ZMIANY v5.26 ===================
         float max_t = -999.0, min_t = 999.0;
         for (int i : {0, 1, 2, 4}) {
             if (state.ds18b20_temps[i] > max_t) max_t = state.ds18b20_temps[i];
@@ -82,27 +90,16 @@ void ActuatorManager::update(DryerState& state) {
     }
     state.isChamberFanOn = isChamberFanOn_internal;
 
-
-    // Reszta logiki
-    float p_on = state.psuFanOnTemp;
-    float p_off = p_on - state.psuFanOffHysteresis;
-    if (state.ds18b20_temps[3] > p_on) {
-        setPsuFan(true);
-    } else if (state.ds18b20_temps[3] < p_off) {
-        setPsuFan(false);
+    // Wentylator wentylacji (Przyszłość)
+    if (state.currentMode == MODE_IDLE) {
+        setVentilationFan(false);
     }
-    state.isPsuFanOn = isPsuFanOn_internal;
+    // state.isVentilationFanOn = isVentilationFanOn_internal; // Aktualizacja stanu w DryerState, jeśli potrzebne
 
-    if (!isHeaterOn_internal && heaterOffTime > 0) {
-        if (millis() - heaterOffTime >= HEATER_FAN_COOLDOWN_TIME) {
-            setHeaterFan(false);
-            heaterOffTime = 0;
-        }
-    }
-    state.isHeaterFanOn = isHeaterFanOn_internal;
-    
-    setHeaterLed(state.isHeaterOn); 
+    // Dioda LED
+    setHeaterLed(state.isHeaterOn);
 
+    // Buzzer alarmu
     if (isAlarmActive) {
         if (millis() - lastAlarmBeepTime > 1000) {
             lastAlarmBeepTime = millis();
@@ -136,12 +133,26 @@ void ActuatorManager::playAlarmSound(bool play) {
     }
 }
 
-void ActuatorManager::forceHeater(bool state) { 
-    setHeater(state);
+void ActuatorManager::forceHeaterMain(bool state) {
+    digitalWrite(HEATER_PIN_MAIN, state ? HIGH : LOW);
+    isHeaterMainOn_internal = state;
 }
-void ActuatorManager::forceHeaterFan(bool state) { digitalWrite(HEATER_FAN_PIN, state); }
-void ActuatorManager::forceChamberFan(bool state) { digitalWrite(CHAMBER_FAN_PIN, state); }
-void ActuatorManager::forcePsuFan(bool state) { digitalWrite(POWER_SUPPLY_FAN_PIN, state); }
+void ActuatorManager::forceHeaterAux1(bool state) {
+    digitalWrite(HEATER_PIN_AUX1, state ? HIGH : LOW);
+    isHeaterAux1On_internal = state;
+}
+void ActuatorManager::forceHeaterAux2(bool state) {
+    digitalWrite(HEATER_PIN_AUX2, state ? HIGH : LOW);
+    isHeaterAux2On_internal = state;
+}
+void ActuatorManager::forceChamberFan(bool state) {
+    digitalWrite(CHAMBER_FAN_PIN, state ? HIGH : LOW);
+    isChamberFanOn_internal = state;
+}
+void ActuatorManager::forceVentilationFan(bool state) {
+    digitalWrite(VENTILATION_FAN_PIN, state ? HIGH : LOW);
+    isVentilationFanOn_internal = state;
+}
 void ActuatorManager::forceBuzzer(bool state) {
     if (state) {
         tone(BUZZER_PIN, 1000);
@@ -149,38 +160,34 @@ void ActuatorManager::forceBuzzer(bool state) {
         noTone(BUZZER_PIN);
     }
 }
-void ActuatorManager::forceHeaterLed(bool state) { digitalWrite(HEATER_LED_PIN, state); }
-
-void ActuatorManager::resetAllForced() {
-    forceHeater(false);
-    forceHeaterFan(false);
-    forceChamberFan(false);
-    forcePsuFan(false);
-    forceBuzzer(false);
-    forceHeaterLed(false);
+void ActuatorManager::forceHeaterLed(bool state) {
+    digitalWrite(HEATER_LED_PIN, state ? HIGH : LOW);
 }
 
-void ActuatorManager::setHeaterFan(bool s) {
-    if (s != isHeaterFanOn_internal) {
-        digitalWrite(HEATER_FAN_PIN, s);
-        isHeaterFanOn_internal = s;
-    }
+void ActuatorManager::resetAllForced() {
+    forceHeaterMain(false); // Ustawia LOW
+    forceHeaterAux1(false); // Ustawia LOW
+    forceHeaterAux2(false); // Ustawia LOW
+    forceChamberFan(false); // Ustawia LOW
+    forceVentilationFan(false); // Ustawia LOW
+    forceBuzzer(false);
+    forceHeaterLed(false); // Ustawia LOW
 }
 
 void ActuatorManager::setChamberFan(bool s) {
     if (s != isChamberFanOn_internal) {
-        digitalWrite(CHAMBER_FAN_PIN, s);
+        digitalWrite(CHAMBER_FAN_PIN, s ? HIGH : LOW);
         isChamberFanOn_internal = s;
     }
 }
 
-void ActuatorManager::setPsuFan(bool s) {
-    if (s != isPsuFanOn_internal) {
-        digitalWrite(POWER_SUPPLY_FAN_PIN, s);
-        isPsuFanOn_internal = s;
+void ActuatorManager::setVentilationFan(bool s) {
+    if (s != isVentilationFanOn_internal) {
+        digitalWrite(VENTILATION_FAN_PIN, s ? HIGH : LOW);
+        isVentilationFanOn_internal = s;
     }
 }
 
 void ActuatorManager::setHeaterLed(bool s) {
-    digitalWrite(HEATER_LED_PIN, s);
+    digitalWrite(HEATER_LED_PIN, s ? HIGH : LOW);
 }

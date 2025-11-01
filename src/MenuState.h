@@ -1,12 +1,12 @@
 // =================================================================
 // Plik:          MenuState.h
-// Wersja:        5.30
-// Data:          17.10.2025
+// Wersja:        5.32b
+// Data:          23.10.2025
 // Autor:         PPSerwis AIRSOFT & more
 // Copyright (c) 2025 PPSerwis AIRSOFT & more
 // Licencja:      MIT License (zobacz plik LICENSE w repozytorium)
 // Opis Zmian:
-//  - [CHORE] Dodano informacje o prawach autorskich i licencji.
+//  - [FIX] Usunięto nieużywane stany menu dla wentylatora PSU.
 // =================================================================
 #ifndef MENUSTATE_H
 #define MENUSTATE_H
@@ -28,8 +28,10 @@ enum MenuState {
   SCREEN_WIFI_STATUS,
   
   MENU_ADVANCED_SETTINGS,
-  MENU_SET_PSU_FAN_ON_TEMP,
-  MENU_SET_PSU_FAN_HYSTERESIS,
+  // ================== POCZĄTEK ZMIANY v5.32b ==================
+  // MENU_SET_PSU_FAN_ON_TEMP, // Usunięto
+  // MENU_SET_PSU_FAN_HYSTERESIS, // Usunięto
+  // =================== KONIEC ZMIANY v5.32b ===================
   MENU_SET_PSU_OVERHEAT_LIMIT,
 
   MENU_SET_CONTRAST,

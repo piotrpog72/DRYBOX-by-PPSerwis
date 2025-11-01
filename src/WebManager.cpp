@@ -1,12 +1,12 @@
 // =================================================================
 // Plik:          WebManager.cpp
-// Wersja:        5.30
-// Data:          17.10.2025
+// Wersja:        5.32b
+// Data:          23.10.2025
 // Autor:         PPSerwis AIRSOFT & more
 // Copyright (c) 2025 PPSerwis AIRSOFT & more
 // Licencja:      MIT License (zobacz plik LICENSE w repozytorium)
 // Opis Zmian:
-//  - [CHORE] Dodano informacje o prawach autorskich i licencji.
+//  - [FIX] Usunięto odwołania do nieistniejących zmiennych PSU Fan.
 // =================================================================
 #include "WebManager.h"
 #include <LittleFS.h>
@@ -20,11 +20,9 @@ void WebManager::begin() {
     _server.on("/style.css", HTTP_GET, [this](){ this->handleStyle(); });
     _server.on("/data", HTTP_GET, [this](){ this->handleData(); });
     _server.on("/command", HTTP_GET, [this](){ this->handleCommand(); });
-    
     _server.on("/settings", HTTP_GET, [this](){ this->handleSettingsPage(); });
     _server.on("/get_settings", HTTP_GET, [this](){ this->handleGetSettings(); });
     _server.on("/save_settings", HTTP_POST, [this](){ this->handleSaveSettings(); });
-
     _server.onNotFound([this](){ this->handleNotFound(); });
     _server.begin();
     Serial.println("WebManager: Serwer HTTP uruchomiony.");
@@ -51,6 +49,10 @@ void WebManager::handleStyle() {
     handleFileRequest("/style.css", "text/css");
 }
 
+void WebManager::handleSettingsPage() {
+    handleFileRequest("/settings.html", "text/html");
+}
+
 void WebManager::handleNotFound() {
     _server.send(404, "text/plain", "Not Found");
 }
@@ -63,10 +65,6 @@ void WebManager::handleFileRequest(const String& path, const String& contentType
     } else {
         handleNotFound();
     }
-}
-
-void WebManager::handleSettingsPage() {
-    handleFileRequest("/settings.html", "text/html");
 }
 
 void WebManager::handleGetSettings() {
@@ -82,18 +80,18 @@ void WebManager::handleGetSettings() {
     doc["pid_kp"] = _state.pid_kp;
     doc["pid_ki"] = _state.pid_ki;
     doc["pid_kd"] = _state.pid_kd;
-    doc["psuFanOnTemp"] = _state.psuFanOnTemp;
-    doc["psuFanOffHysteresis"] = _state.psuFanOffHysteresis;
+    // ================== POCZĄTEK ZMIANY v5.32b ==================
+    // doc["psuFanOnTemp"] = _state.psuFanOnTemp; // Usunięto
+    // doc["psuFanOffHysteresis"] = _state.psuFanOffHysteresis; // Usunięto
+    // =================== KONIEC ZMIANY v5.32b ===================
     doc["psuOverheatLimit"] = _state.psuOverheatLimit;
 
-    // ================== POCZĄTEK ZMIANY v5.29 ==================
     JsonArray spools = doc.createNestedArray("spools");
     for (int i=0; i<4; i++) {
         JsonObject spool = spools.createNestedObject();
         spool["type"] = _state.spools[i].typeIndex;
         spool["color"] = _state.spools[i].colorIndex;
     }
-    // =================== KONIEC ZMIANY v5.29 ===================
 
     String json;
     serializeJson(doc, json);
@@ -101,43 +99,29 @@ void WebManager::handleGetSettings() {
 }
 
 void WebManager::handleSaveSettings() {
-    // Profil Własny
     if (_server.hasArg("customTemp")) _profiles[PROFILE_CUSTOM].temp = _server.arg("customTemp").toFloat();
     if (_server.hasArg("customHum")) _profiles[PROFILE_CUSTOM].humidity = _server.arg("customHum").toFloat();
-    
-    // Ustawienia ogólne
     if (_server.hasArg("soundsEnabled")) _state.areSoundsEnabled = (_server.arg("soundsEnabled") == "true");
     if (_server.hasArg("glcdContrast")) _state.glcdContrast = _server.arg("glcdContrast").toInt();
-
-    // Sterowanie Grzaniem
     if (_server.hasArg("boostMaxTime_min")) _state.boostMaxTime_min = _server.arg("boostMaxTime_min").toInt();
     if (_server.hasArg("boostTempThreshold")) _state.boostTempThreshold = _server.arg("boostTempThreshold").toFloat();
     if (_server.hasArg("boostPsuTempLimit")) _state.boostPsuTempLimit = _server.arg("boostPsuTempLimit").toFloat();
     if (_server.hasArg("rampPowerPercent")) _state.rampPowerPercent = _server.arg("rampPowerPercent").toInt();
-
-    // Nastawy PID
     if (_server.hasArg("pid_kp")) _state.pid_kp = _server.arg("pid_kp").toFloat();
     if (_server.hasArg("pid_ki")) _state.pid_ki = _server.arg("pid_ki").toFloat();
     if (_server.hasArg("pid_kd")) _state.pid_kd = _server.arg("pid_kd").toFloat();
-
-    // Zasilacz
-    if (_server.hasArg("psuFanOnTemp")) _state.psuFanOnTemp = _server.arg("psuFanOnTemp").toFloat();
-    if (_server.hasArg("psuFanOffHysteresis")) _state.psuFanOffHysteresis = _server.arg("psuFanOffHysteresis").toFloat();
+    // ================== POCZĄTEK ZMIANY v5.32b ==================
+    // if (_server.hasArg("psuFanOnTemp")) _state.psuFanOnTemp = _server.arg("psuFanOnTemp").toFloat(); // Usunięto
+    // if (_server.hasArg("psuFanOffHysteresis")) _state.psuFanOffHysteresis = _server.arg("psuFanOffHysteresis").toFloat(); // Usunięto
+    // =================== KONIEC ZMIANY v5.32b ===================
     if (_server.hasArg("psuOverheatLimit")) _state.psuOverheatLimit = _server.arg("psuOverheatLimit").toFloat();
 
-    // ================== POCZĄTEK ZMIANY v5.29 ==================
-    // Etykiety rolek
     for (int i = 0; i < 4; i++) {
         String type_arg = "spool_type_" + String(i);
         String color_arg = "spool_color_" + String(i);
-        if (_server.hasArg(type_arg)) {
-            _state.spools[i].typeIndex = _server.arg(type_arg).toInt();
-        }
-        if (_server.hasArg(color_arg)) {
-            _state.spools[i].colorIndex = _server.arg(color_arg).toInt();
-        }
+        if (_server.hasArg(type_arg)) _state.spools[i].typeIndex = _server.arg(type_arg).toInt();
+        if (_server.hasArg(color_arg)) _state.spools[i].colorIndex = _server.arg(color_arg).toInt();
     }
-    // =================== KONIEC ZMIANY v5.29 ===================
 
     _lastCommand = "SAVE_SETTINGS";
     _server.send(200, "text/plain", "OK");
@@ -173,13 +157,16 @@ void WebManager::handleData() {
     doc["icon_heater"] = _state.isHeaterOn;
     doc["icon_cooling"] = (_state.isHeaterFanOn && _state.currentMode == MODE_IDLE);
     doc["icon_fan_chamber"] = _state.isChamberFanOn;
-    doc["icon_fan_psu"] = _state.isPsuFanOn;
+    // ================== POCZĄTEK ZMIANY v5.32b ==================
+    // doc["icon_fan_psu"] = _state.isPsuFanOn; // Usunięto
+    doc["icon_fan_vent"] = _state.isVentilationFanOn; // Dodano (na przyszłość)
+    // =================== KONIEC ZMIANY v5.32b ===================
     doc["ds0"] = _state.ds18b20_temps[0];
     doc["ds1"] = _state.ds18b20_temps[1];
     doc["ds2"] = _state.ds18b20_temps[2];
     doc["ds3"] = _state.ds18b20_temps[3];
     doc["ds4"] = _state.ds18b20_temps[4];
-    doc["pid_power"] = _state.pidOutput;
+    doc["pid_power"] = _state.pidOutput; // Teraz wysyła poziom mocy (0-3)
     JsonArray spools = doc.createNestedArray("spools");
     for (int i=0; i<4; i++) {
         JsonObject spool = spools.createNestedObject();

@@ -1,7 +1,7 @@
 <!--=================================================================-->
 <!-- Plik:          settings.html                              `     -->
-<!-- Wersja:        5.30                                             -->       
-<!-- Data:          17.10.2025                                       -->
+<!-- Wersja:        5.32b                                             -->       
+<!-- Data:          23.10.2025                                       -->
 <!-- Autor:         PPSerwis AIRSOFT & more                          -->
 <!-- Copyright (c) 2025 PPSerwis AIRSOFT & more                      -->
 <!-- Licencja:      MIT License (zobacz plik LICENSE w repozytorium) -->
@@ -39,6 +39,7 @@
                     <div id="spool-settings-container" class="form-grid-spools">
                         </div>
                 </div>
+
                 <div class="card">
                     <h2>Ustawienia Ogólne</h2>
                     <div class="form-grid">
@@ -48,7 +49,7 @@
                         <input type="range" id="glcdContrast" name="glcdContrast" min="0" max="255" step="1">
                     </div>
                 </div>
-                
+
                 <div class="card">
                     <h2>Sterowanie Grzaniem</h2>
                      <div class="form-grid">
@@ -78,14 +79,10 @@
                 <div class="card">
                     <h2>Zasilacz</h2>
                     <div class="form-grid">
-                        <label for="psuFanOnTemp">Wentylator - Włącz (°C):</label>
-                        <input type="number" id="psuFanOnTemp" name="psuFanOnTemp" min="30" max="60">
-                        <label for="psuFanOffHysteresis">Wentylator - Histereza (°C):</label>
-                        <input type="number" id="psuFanOffHysteresis" name="psuFanOffHysteresis" min="2" max="15">
                         <label for="psuOverheatLimit">Alarm Przegrzania (°C):</label>
                         <input type="number" id="psuOverheatLimit" name="psuOverheatLimit" min="45" max="70">
                     </div>
-                </div>
+                    </div>
 
                 <div class="form-actions">
                     <button type="submit" id="save-btn">Zapisz Ustawienia</button>
@@ -97,7 +94,6 @@
     </div>
 
     <script>
-        // ================== POCZĄTEK ZMIANY v5.29 ==================
         const FILAMENT_TYPES = ["Pusty", "PLA", "PETG", "ABS", "ASA", "TPU", "Inny"];
         const FILAMENT_COLORS = ["Brak", "Biały", "Czarny", "Szary", "Czerwony", "Zielony", "Niebieski", "Żółty", "Pomarańczowy", "Fioletowy", "Naturalny", "Srebrny", "Złoty", "Multikolor"];
 
@@ -131,14 +127,13 @@
                 container.appendChild(selectsWrapper);
             }
         }
-        // =================== KONIEC ZMIANY v5.29 ===================
 
         async function loadSettings() {
             try {
                 const response = await fetch('/get_settings');
                 if (!response.ok) throw new Error('Błąd pobierania ustawień');
                 const settings = await response.json();
-                
+
                 document.getElementById('customTemp').value = settings.customTemp;
                 document.getElementById('customHum').value = settings.customHum;
                 document.getElementById('soundsEnabled').checked = settings.soundsEnabled;
@@ -150,18 +145,17 @@
                 document.getElementById('pid_kp').value = settings.pid_kp;
                 document.getElementById('pid_ki').value = settings.pid_ki;
                 document.getElementById('pid_kd').value = settings.pid_kd;
-                document.getElementById('psuFanOnTemp').value = settings.psuFanOnTemp;
-                document.getElementById('psuFanOffHysteresis').value = settings.psuFanOffHysteresis;
+                // ================== POCZĄTEK ZMIANY v5.32b ==================
+                // Usunięto odwołania do psuFanOnTemp i psuFanOffHysteresis
+                // =================== KONIEC ZMIANY v5.32b ===================
                 document.getElementById('psuOverheatLimit').value = settings.psuOverheatLimit;
 
-                // ================== POCZĄTEK ZMIANY v5.29 ==================
                 if (settings.spools) {
                     settings.spools.forEach((spool, i) => {
                         document.getElementById(`spool_type_${i}`).value = spool.type;
                         document.getElementById(`spool_color_${i}`).value = spool.color;
                     });
                 }
-                // =================== KONIEC ZMIANY v5.29 ===================
 
             } catch (error) {
                 document.getElementById('save-status').textContent = 'Błąd: ' + error.message;
@@ -193,12 +187,10 @@
             }
         });
 
-        // ================== POCZĄTEK ZMIANY v5.29 ==================
         window.addEventListener('load', () => {
             generateSpoolSettings();
             loadSettings();
         });
-        // =================== KONIEC ZMIANY v5.29 ===================
     </script>
 </body>
 </html>

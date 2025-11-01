@@ -1,12 +1,13 @@
 // =================================================================
 // Plik:          DryerState.h
-// Wersja:        5.30
-// Data:          17.10.2025
+// Wersja:        5.32c
+// Data:          23.10.2025
 // Autor:         PPSerwis AIRSOFT & more
 // Copyright (c) 2025 PPSerwis AIRSOFT & more
 // Licencja:      MIT License (zobacz plik LICENSE w repozytorium)
 // Opis Zmian:
-//  - [CHORE] Dodano informacje o prawach autorskich i licencji.
+//  - [FIX] Przywrócono/potwierdzono obecność zmiennej isVentilationFanOn.
+//  - Usunięto nieużywane zmienne psuFan*.
 // =================================================================
 #ifndef DRYERSTATE_H
 #define DRYERSTATE_H
@@ -23,12 +24,10 @@ enum ProfileType { PROFILE_PLA,
                    PROFILE_ABS,
                    PROFILE_CUSTOM };
 
-// ================== POCZĄTEK ZMIANY v5.26 ==================
 enum HeatingPhase { PHASE_OFF,
                     PHASE_BOOST,
                     PHASE_RAMP,
                     PHASE_PID };
-// =================== KONIEC ZMIANY v5.26 ===================
 
 struct FilamentProfile {
   String name;
@@ -58,43 +57,44 @@ struct DryerState {
   float startingHumidity = 0.0;
   unsigned long heaterTotalOnTime_ms = 0;
   bool isHeaterOn = false;
-  bool isHeaterFanOn = false;
+  bool isHeaterFanOn = false; // Pozostaje, bo ActuatorManager go używa wewnętrznie
   bool isChamberFanOn = false;
-  bool isPsuFanOn = false;
+  // bool isPsuFanOn = false; // Usunięte
+  // ================== POCZĄTEK ZMIANY v5.32c ==================
+  bool isVentilationFanOn = false; // Upewnij się, że ta linia istnieje!
+  // =================== KONIEC ZMIANY v5.32c ===================
   bool interactiveDisplayActive = true;
   unsigned long lastUserInputTime = 0;
   SpoolData spools[4];
   bool isWifiEnabled = true;
   bool isWifiConnected = false;
-  
+
   bool areSoundsEnabled = true;
-  float psuFanOnTemp = PSU_FAN_ON_TEMP_DEFAULT;
-  float psuFanOffHysteresis = PSU_FAN_OFF_HYSTERESIS_DEFAULT;
+  // float psuFanOnTemp = PSU_FAN_ON_TEMP_DEFAULT; // Usunięte
+  // float psuFanOffHysteresis = PSU_FAN_OFF_HYSTERESIS_DEFAULT; // Usunięte
   float psuOverheatLimit = PSU_OVERHEAT_LIMIT_DEFAULT;
 
   bool isInAlarmState = false;
 
   int glcdContrast = GLCD_CONTRAST_DEFAULT;
   bool isInTestMode = false;
-  bool test_heater = false;
-  bool test_heater_fan = false;
+  // Flagi dla testu podzespołów
+  bool test_heater = false; // Obecnie używane dla test_heater_main
   bool test_chamber_fan = false;
-  bool test_psu_fan = false;
   bool test_buzzer = false;
   bool test_heater_led = false;
+  // TODO: Dodać flagi dla test_heater_aux1, test_heater_aux2, test_vent_fan
 
   double pid_kp = PID_KP_DEFAULT;
   double pid_ki = PID_KI_DEFAULT;
   double pid_kd = PID_KD_DEFAULT;
-  double pidOutput = 0;
+  double pidOutput = 0; // Przechowuje teraz poziom mocy (0-3) lub wynik PID (0/1)
 
-  // ================== POCZĄTEK ZMIANY v5.26 ==================
-  HeatingPhase currentPhase = PHASE_OFF; // Zastępuje isBoostActive
-  // =================== KONIEC ZMIANY v5.26 ===================
+  HeatingPhase currentPhase = PHASE_OFF;
 
   uint8_t boostMaxTime_min = DEFAULT_BOOST_TIME_MIN;
   float boostTempThreshold = DEFAULT_BOOST_TEMP_THRESHOLD;
   float boostPsuTempLimit = DEFAULT_BOOST_PSU_TEMP_LIMIT;
-  uint8_t rampPowerPercent = DEFAULT_RAMP_POWER_PERCENT;
+  uint8_t rampPowerPercent = DEFAULT_RAMP_POWER_PERCENT; // Może być użyte do poziomu mocy w Ramp
 };
 #endif

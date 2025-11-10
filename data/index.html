@@ -1,15 +1,13 @@
 <!--=================================================================-->
 <!-- Plik:          index.html                                       -->
-<!-- Wersja:        5.30                                             -->       
-<!-- Data:          17.10.2025                                       -->
+<!-- Wersja:        5.35 FINAL                                             -->       
+<!-- Data:          11.11.2025                                       -->
 <!-- Autor:         PPSerwis AIRSOFT & more                          -->
 <!-- Copyright (c) 2025 PPSerwis AIRSOFT & more                      -->
 <!-- Licencja:      MIT License (zobacz plik LICENSE w repozytorium) -->
 <!-- Opis Zmian:                                                     -->
 <!--  - [CHORE] Dodano informacje o prawach autorskich i licencji.   -->
 <!-- ================================================================-->
-
-
 <!DOCTYPE html>
 <html lang="pl">
 <head>
@@ -43,10 +41,11 @@
                         <div class="data-point"><strong>Cel Wilg:</strong> <span id="target-hum">--</span> %</div>
                     </div>
                     <div class="status-icons">
-                        <div class="icon" id="icon-heater" title="Grzałka">🔥</div>
-                        <div class="icon" id="icon-cooling" title="Chłodzenie">❄️</div>
+                        <div class="icon" id="icon-heater-main" title="Grzałka Główna (23W)">🔥</div>
+                        <div class="icon" id="icon-heater-aux1" title="Grzałka Boczna 1 (23W)">🔥</div>
+                        <div class="icon" id="icon-heater-aux2" title="Grzałka Boczna 2 (23W)">🔥</div>
                         <div class="icon" id="icon-fan-chamber" title="Wentylator Komory">🌪️</div>
-                        <div class="icon" id="icon-fan-psu" title="Wentylator Zasilacza">💨</div>
+                        <div class="icon" id="icon-fan-vent" title="Wentylacja">💨</div>
                     </div>
                     <div id="heating-phase-status" class="phase-status"></div>
                     <div class="controls">
@@ -61,6 +60,10 @@
                             <option value="1">Tryb: Wilgotność</option>
                             <option value="2">Tryb: Ciągły</option>
                         </select>
+                        <div id="time-input-wrapper" class="time-input-wrapper">
+                            <label for="drying-time-min">Czas (min):</label>
+                            <input type="number" id="drying-time-min" name="drying-time-min" value="360" min="10" step="10">
+                        </div>
                         <button id="start-btn">Start</button>
                         <button id="stop-btn">Stop</button>
                     </div>
@@ -107,13 +110,13 @@
                 data: { datasets: [
                     { label: 'Temperatura', yAxisID: 'yTemp', borderColor: 'rgb(255, 99, 132)', tension: 0.1, data: [] },
                     { label: 'Wilgotność', yAxisID: 'yTemp', borderColor: 'rgb(54, 162, 235)', tension: 0.1, data: [] },
-                    { label: 'Moc', yAxisID: 'yPower', borderColor: 'rgb(255, 206, 86)', tension: 0.1, data: [] }
+                    { label: 'Moc (0-3)', yAxisID: 'yPower', borderColor: 'rgb(255, 206, 86)', tension: 0.1, data: [], steppped: true }
                 ]},
                 options: {
                     scales: {
                         x: { type: 'time', time: { unit: 'minute' }, title: { display: true, text: 'Czas' } },
                         yTemp: { type: 'linear', position: 'left', min: 0, max: 80, title: { display: true, text: 'Temp (°C) / Wilg (%)' } },
-                        yPower: { type: 'linear', position: 'right', min: 0, max: 260, title: { display: true, text: 'Moc (0-255)' }, grid: { drawOnChartArea: false } }
+                        yPower: { type: 'linear', position: 'right', min: 0, max: 3, ticks: { stepSize: 1 }, title: { display: true, text: 'Poziom Mocy (0-3)' }, grid: { drawOnChartArea: false } }
                     },
                     animation: { duration: 250 },
                     maintainAspectRatio: false
@@ -141,10 +144,13 @@
             document.getElementById('hum').textContent = data.hum.toFixed(1);
             document.getElementById('target-temp').textContent = data.target_temp.toFixed(1);
             document.getElementById('target-hum').textContent = data.target_hum.toFixed(0);
-            document.getElementById('icon-heater').classList.toggle('active', data.icon_heater);
-            document.getElementById('icon-cooling').classList.toggle('active', data.icon_cooling);
+
+            document.getElementById('icon-heater-main').classList.toggle('active', data.icon_heater_main);
+            document.getElementById('icon-heater-aux1').classList.toggle('active', data.icon_heater_aux1);
+            document.getElementById('icon-heater-aux2').classList.toggle('active', data.icon_heater_aux2);
             document.getElementById('icon-fan-chamber').classList.toggle('active', data.icon_fan_chamber);
-            document.getElementById('icon-fan-psu').classList.toggle('active', data.icon_fan_psu);
+            document.getElementById('icon-fan-vent').classList.toggle('active', data.icon_fan_vent);
+
             document.getElementById('ds0').textContent = data.ds0.toFixed(1);
             document.getElementById('ds1').textContent = data.ds1.toFixed(1);
             document.getElementById('ds2').textContent = data.ds2.toFixed(1);
@@ -176,6 +182,7 @@
             chart.data.datasets[0].data.push({ x: now, y: data.temp });
             chart.data.datasets[1].data.push({ x: now, y: data.hum });
             chart.data.datasets[2].data.push({ x: now, y: data.pid_power });
+            
             const twoHoursAgo = now - (2 * 60 * 60 * 1000);
             chart.options.scales.x.min = twoHoursAgo;
             chart.options.scales.x.max = now;
@@ -198,20 +205,45 @@
             } catch (error) { console.error('Błąd wysyłania komendy: ', error); }
         }
 
+        // ================== POCZĄTEK ZMIANY v5.35 ==================
+        function handleModeChange() {
+            const mode = document.getElementById('mode-select').value;
+            const timeWrapper = document.getElementById('time-input-wrapper');
+            // Pokaż pole czasu tylko jeśli wybrano "Tryb: Czasowy" (indeks 0)
+            if (mode === '0') {
+                timeWrapper.style.display = 'grid';
+            } else {
+                timeWrapper.style.display = 'none';
+            }
+        }
+
         window.addEventListener('load', () => {
             initChart();
             fetchData(); 
             setInterval(fetchData, 2000);
 
+            // Powiąż funkcję ze zmianą selecta
+            document.getElementById('mode-select').addEventListener('change', handleModeChange);
+            // Uruchom raz przy starcie, aby ustawić poprawną widoczność
+            handleModeChange();
+
             document.getElementById('start-btn').addEventListener('click', () => {
                 const profile = document.getElementById('profile-select').value;
                 const mode = document.getElementById('mode-select').value;
-                sendCommand(`START:${profile}:${mode}`);
+                const time = document.getElementById('drying-time-min').value;
+                
+                let command = `START:${profile}:${mode}`;
+                // Dołącz czas do polecenia tylko dla trybu czasowego
+                if (mode === '0') {
+                    command += `:${time}`;
+                }
+                sendCommand(command);
             });
             document.getElementById('stop-btn').addEventListener('click', () => {
                 sendCommand('STOP');
             });
         });
+        // =================== KONIEC ZMIANY v5.35 ===================
     </script>
 </body>
 </html>

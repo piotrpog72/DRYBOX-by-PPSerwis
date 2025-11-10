@@ -1,13 +1,15 @@
 // =================================================================
 // Plik:          DryerController.h
-// Wersja:        5.31
-// Data:          18.10.2025
+// Wersja:        5.35 final
+// Data:          11.11.2025
 // Autor:         PPSerwis AIRSOFT & more
 // Copyright (c) 2025 PPSerwis AIRSOFT & more
 // Licencja:      MIT License (zobacz plik LICENSE w repozytorium)
 // Opis Zmian:
-//  - [REFACTOR] Usunięto logikę menu, zastępując ją
-//    obiektem nowej klasy MenuManager.
+//  - [REVERT] Powrót do bazy v5.30 (processUserInput wewnątrz tej
+//    klasy), aby naprawić błąd znikającego menu.
+//  - [FIX] Implementacja nowej logiki grzania (Boost->Ramp->PID+Failsafe).
+//  - [FEATURE] Dodanie obsługi ustawień wentylacji.
 // =================================================================
 #ifndef DRYERCONTROLLER_H
 #define DRYERCONTROLLER_H
@@ -19,7 +21,6 @@
 #include "InputManager.h"
 #include "ActuatorManager.h"
 #include "WebManager.h"
-#include "MenuManager.h" // <-- NOWY INCLUDE
 #include <PID_v1.h>
 
 class DryerController {
@@ -36,14 +37,10 @@ private:
   DryerState currentState;
   FilamentProfile profiles[4];
   WebManager webManager;
-  
-  // ================== POCZĄTEK ZMIANY v5.31 ==================
-  MenuManager menuManager;
-  // =================== KONIEC ZMIANY v5.31 ===================
 
   unsigned long lastSensorReadTime = 0;
   unsigned long lastHeaterUpdateTime = 0;
-  // int editingSpoolIndex = 0; // Przeniesione do MenuManager
+  int editingSpoolIndex = 0;
 
   double pidSetpoint, pidInput, pidOutput;
   PID pid;
@@ -51,14 +48,10 @@ private:
   void handleWifi();
   void startWifiConfig();
   void initializeProfiles();
-  // void processUserInput(); // Usunięte
+  void processUserInput(); // Kluczowa funkcja z logiką menu
   void loadSettings();
   void saveSettings();
   void startDryingProcess();
   void processWebCommand(String command);
-  
-  // ================== POCZĄTEK ZMIANY v5.31 ==================
-  void processMenuAction(MenuAction action, int data); // Nowa funkcja do obsługi akcji z menu
-  // =================== KONIEC ZMIANY v5.31 ===================
 };
 #endif

@@ -1,12 +1,12 @@
 // =================================================================
 // Plik:          WebManager.h
-// Wersja:        5.30
-// Data:          17.10.2025
+// Wersja:        5.35 final
+// Data:          11.11.2025
 // Autor:         PPSerwis AIRSOFT & more
 // Copyright (c) 2025 PPSerwis AIRSOFT & more
 // Licencja:      MIT License (zobacz plik LICENSE w repozytorium)
 // Opis Zmian:
-//  - [CHORE] Dodano informacje o prawach autorskich i licencji.
+//  - [CHORE] Aktualizacja nagłówka wersji.
 // =================================================================
 #ifndef WEBMANAGER_H
 #define WEBMANAGER_H
@@ -35,7 +35,6 @@ private:
     void handleCommand();
     void handleNotFound();
     void handleFileRequest(const String& path, const String& contentType);
-
     void handleSettingsPage();
     void handleGetSettings();
     void handleSaveSettings();

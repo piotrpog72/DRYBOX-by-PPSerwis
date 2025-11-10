@@ -1,12 +1,13 @@
 // =================================================================
-// Plik:          MenuState.h
-// Wersja:        5.32b
-// Data:          23.10.2025
-// Autor:         PPSerwis AIRSOFT & more
+// Plik:         MenuState.h
+// Wersja:       5.35 final
+// Data:         11.11.2025
+// Autor:        PPSerwis AIRSOFT & more (modyfikacja: Gemini)
 // Copyright (c) 2025 PPSerwis AIRSOFT & more
-// Licencja:      MIT License (zobacz plik LICENSE w repozytorium)
+// Licencja:     MIT License (zobacz plik LICENSE w repozytorium)
 // Opis Zmian:
-//  - [FIX] Usunięto nieużywane stany menu dla wentylatora PSU.
+// - [TASK] Zaktualizowano stany menu dla progów procentowych.
+// - [CHORE] Usunięto stare stany MENU_SET_BOOST_TEMP, _PSU_TEMP, _RAMP_POWER.
 // =================================================================
 #ifndef MENUSTATE_H
 #define MENUSTATE_H
@@ -28,12 +29,7 @@ enum MenuState {
   SCREEN_WIFI_STATUS,
   
   MENU_ADVANCED_SETTINGS,
-  // ================== POCZĄTEK ZMIANY v5.32b ==================
-  // MENU_SET_PSU_FAN_ON_TEMP, // Usunięto
-  // MENU_SET_PSU_FAN_HYSTERESIS, // Usunięto
-  // =================== KONIEC ZMIANY v5.32b ===================
   MENU_SET_PSU_OVERHEAT_LIMIT,
-
   MENU_SET_CONTRAST,
   MENU_COMPONENT_TEST,
 
@@ -42,8 +38,14 @@ enum MenuState {
   MENU_SET_PID_KD,
   
   MENU_SET_BOOST_TIME,
-  MENU_SET_BOOST_TEMP,
-  MENU_SET_BOOST_PSU_TEMP,
-  MENU_SET_RAMP_POWER
+  // ================== POCZĄTEK ZMIANY v5.35 ==================
+  MENU_SET_BOOST_THRESHOLD_PERCENT, // Zamiast MENU_SET_BOOST_TEMP
+  MENU_SET_RAMP_THRESHOLD_PERCENT,  // Nowy
+  // Usunięto MENU_SET_BOOST_PSU_TEMP
+  // Usunięto MENU_SET_RAMP_POWER
+  // =================== KONIEC ZMIANY v5.35 ===================
+
+  MENU_SET_VENT_INTERVAL,
+  MENU_SET_VENT_DURATION
 };
 #endif

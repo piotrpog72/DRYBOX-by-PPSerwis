@@ -1,11 +1,12 @@
 Tytuł: Drybox v5 - Zaawansowana Suszarka do Filamentu 3D (Filament Dryer)
+Wersja stabilna 5.35 final
 
 Opis: Wielofunkcyjna, inteligentna suszarka do filamentu do druku 3D oparta na mikrokontrolerze ESP32, 
 z podwójnym wyświetlaczem, zaawansowanym sterowaniem grzaniem i pełnym interfejsem webowym.
 
 KLUCZOWE FUNKCJE (FEATURES)
 Precyzyjne Sensory: Monitorowanie temperatury i wilgotności w czasie rzeczywistym (SHT41, 5x DS18B20).
-Zaawansowane Sterowanie Grzaniem: Trójfazowa logika (Boost, Ramp, PID) dla szybkiego i stabilnego nagrzewania.
+Zaawansowane Sterowanie Grzaniem: Trójfazowa logika (Boost, Ramp, PID) dla szybkiego i stabilnego nagrzewania z wykorzystaniem trzech stopni grzania 23W, 46W, 69W.
 Wiele Trybów Suszenia: Czasowy, do osiągnięcia celu wilgotności oraz tryb ciągły.
 Profile Filamentów: Wbudowane profile dla PLA, PETG, ABS oraz w pełni konfigurowalny profil własny.
 Podwójny Wyświetlacz: Ekran LCD 16x2 do stałego podglądu statusu oraz graficzny GLCD 128x64 do obsługi menu.
@@ -18,8 +19,8 @@ Mikrokontroler: ESP32 DevKitC
 Wyświetlacze: LCD 16x2 z konwerterem I2C, GLCD 128x64 (ST7565)
 Czujniki: 1x SHT41 (I2C), 5x DS18B20 (OneWire)
 Interfejs: Enkoder obrotowy z przyciskiem
-Elementy wykonawcze: Grzałka PTC 12V, tranzystor MOSFET, 4x wentylatory 12V, buzzer, dioda LED
-Zasilanie: Zasilacz 12V (np. 5A), opcjonalnie osobny zasilacz 5V dla logiki
+Elementy wykonawcze: Grzałki z drutu oporowego 23W x3, tranzystor MOSFET, 4x wentylatory 12V, buzzer, pasek LED
+Zasilanie: Zasilacz 12V (np. 5A), opcjonalnie osobny zasilacz 5V dla logiki, przekaźnik SSR 230V 2A czteropozycyjny do sterowania grzałkami
 
 INSTALACJA I URUCHOMIENIE (INSTALLATION)
 Krótki przewodnik krok po kroku, jak wgrać oprogramowanie i uruchomić urządzenie.

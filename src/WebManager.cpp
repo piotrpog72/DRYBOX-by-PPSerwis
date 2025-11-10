@@ -1,12 +1,16 @@
 // =================================================================
-// Plik:          WebManager.cpp
-// Wersja:        5.32b
-// Data:          23.10.2025
-// Autor:         PPSerwis AIRSOFT & more
+// Plik:         WebManager.cpp
+// Wersja:       5.35 final
+// Data:         11.11.2025
+// Autor:        PPSerwis AIRSOFT & more (modyfikacja: Gemini)
 // Copyright (c) 2025 PPSerwis AIRSOFT & more
-// Licencja:      MIT License (zobacz plik LICENSE w repozytorium)
+// Licencja:     MIT License (zobacz plik LICENSE w repozytorium)
 // Opis Zmian:
-//  - [FIX] Usunięto odwołania do nieistniejących zmiennych PSU Fan.
+// - [TASK] Aktualizacja handleGetSettings i handleSaveSettings dla
+//          progów procentowych (zgodnie z settings.html v5.35).
+// - [CHORE] Usunięto obsługę boostTempThreshold, boostPsuTempLimit
+//           i rampPowerPercent.
+// - [CHORE] Aktualizacja FW_VERSION w handleData.
 // =================================================================
 #include "WebManager.h"
 #include <LittleFS.h>
@@ -20,9 +24,11 @@ void WebManager::begin() {
     _server.on("/style.css", HTTP_GET, [this](){ this->handleStyle(); });
     _server.on("/data", HTTP_GET, [this](){ this->handleData(); });
     _server.on("/command", HTTP_GET, [this](){ this->handleCommand(); });
+    
     _server.on("/settings", HTTP_GET, [this](){ this->handleSettingsPage(); });
     _server.on("/get_settings", HTTP_GET, [this](){ this->handleGetSettings(); });
     _server.on("/save_settings", HTTP_POST, [this](){ this->handleSaveSettings(); });
+
     _server.onNotFound([this](){ this->handleNotFound(); });
     _server.begin();
     Serial.println("WebManager: Serwer HTTP uruchomiony.");
@@ -74,17 +80,20 @@ void WebManager::handleGetSettings() {
     doc["soundsEnabled"] = _state.areSoundsEnabled;
     doc["glcdContrast"] = _state.glcdContrast;
     doc["boostMaxTime_min"] = _state.boostMaxTime_min;
-    doc["boostTempThreshold"] = _state.boostTempThreshold;
-    doc["boostPsuTempLimit"] = _state.boostPsuTempLimit;
-    doc["rampPowerPercent"] = _state.rampPowerPercent;
+    
+    // ================== POCZĄTEK ZMIANY v5.35 ==================
+    doc["boostThresholdPercent"] = _state.boostThresholdPercent;
+    doc["rampThresholdPercent"] = _state.rampThresholdPercent;
+    // Usunięto boostTempThreshold, boostPsuTempLimit, rampPowerPercent
+    // =================== KONIEC ZMIANY v5.35 ===================
+    
     doc["pid_kp"] = _state.pid_kp;
     doc["pid_ki"] = _state.pid_ki;
     doc["pid_kd"] = _state.pid_kd;
-    // ================== POCZĄTEK ZMIANY v5.32b ==================
-    // doc["psuFanOnTemp"] = _state.psuFanOnTemp; // Usunięto
-    // doc["psuFanOffHysteresis"] = _state.psuFanOffHysteresis; // Usunięto
-    // =================== KONIEC ZMIANY v5.32b ===================
     doc["psuOverheatLimit"] = _state.psuOverheatLimit;
+
+    doc["ventilationInterval_min"] = _state.ventilationInterval_min;
+    doc["ventilationDuration_sec"] = _state.ventilationDuration_sec;
 
     JsonArray spools = doc.createNestedArray("spools");
     for (int i=0; i<4; i++) {
@@ -104,17 +113,20 @@ void WebManager::handleSaveSettings() {
     if (_server.hasArg("soundsEnabled")) _state.areSoundsEnabled = (_server.arg("soundsEnabled") == "true");
     if (_server.hasArg("glcdContrast")) _state.glcdContrast = _server.arg("glcdContrast").toInt();
     if (_server.hasArg("boostMaxTime_min")) _state.boostMaxTime_min = _server.arg("boostMaxTime_min").toInt();
-    if (_server.hasArg("boostTempThreshold")) _state.boostTempThreshold = _server.arg("boostTempThreshold").toFloat();
-    if (_server.hasArg("boostPsuTempLimit")) _state.boostPsuTempLimit = _server.arg("boostPsuTempLimit").toFloat();
-    if (_server.hasArg("rampPowerPercent")) _state.rampPowerPercent = _server.arg("rampPowerPercent").toInt();
+
+    // ================== POCZĄTEK ZMIANY v5.35 ==================
+    if (_server.hasArg("boostThresholdPercent")) _state.boostThresholdPercent = _server.arg("boostThresholdPercent").toInt();
+    if (_server.hasArg("rampThresholdPercent")) _state.rampThresholdPercent = _server.arg("rampThresholdPercent").toInt();
+    // Usunięto boostTempThreshold, boostPsuTempLimit, rampPowerPercent
+    // =================== KONIEC ZMIANY v5.35 ===================
+
     if (_server.hasArg("pid_kp")) _state.pid_kp = _server.arg("pid_kp").toFloat();
     if (_server.hasArg("pid_ki")) _state.pid_ki = _server.arg("pid_ki").toFloat();
     if (_server.hasArg("pid_kd")) _state.pid_kd = _server.arg("pid_kd").toFloat();
-    // ================== POCZĄTEK ZMIANY v5.32b ==================
-    // if (_server.hasArg("psuFanOnTemp")) _state.psuFanOnTemp = _server.arg("psuFanOnTemp").toFloat(); // Usunięto
-    // if (_server.hasArg("psuFanOffHysteresis")) _state.psuFanOffHysteresis = _server.arg("psuFanOffHysteresis").toFloat(); // Usunięto
-    // =================== KONIEC ZMIANY v5.32b ===================
     if (_server.hasArg("psuOverheatLimit")) _state.psuOverheatLimit = _server.arg("psuOverheatLimit").toFloat();
+
+    if (_server.hasArg("ventilationInterval_min")) _state.ventilationInterval_min = _server.arg("ventilationInterval_min").toInt();
+    if (_server.hasArg("ventilationDuration_sec")) _state.ventilationDuration_sec = _server.arg("ventilationDuration_sec").toInt();
 
     for (int i = 0; i < 4; i++) {
         String type_arg = "spool_type_" + String(i);
@@ -129,7 +141,9 @@ void WebManager::handleSaveSettings() {
 
 void WebManager::handleData() {
     DynamicJsonDocument doc(1024);
-    doc["fw_version"] = FW_VERSION;
+    // ================== POCZĄTEK ZMIANY v5.35 ==================
+    doc["fw_version"] = FW_VERSION; // Używamy teraz zaktualizowanej wersji
+    // =================== KONIEC ZMIANY v5.35 ===================
     doc["temp"] = _state.avgChamberTemp;
     doc["hum"] = _state.dhtHum;
     doc["target_temp"] = _state.targetTemp;
@@ -146,27 +160,27 @@ void WebManager::handleData() {
     String phaseStr = "";
     if (_state.isHeaterOn) {
         switch (_state.currentPhase) {
-            case PHASE_BOOST: phaseStr = "Boost"; break;
-            case PHASE_RAMP: phaseStr = "Ramp"; break;
-            case PHASE_PID: phaseStr = "PID"; break;
+            case PHASE_BOOST: phaseStr = "Boost (69W)"; break;
+            case PHASE_RAMP:  phaseStr = "Ramp (46W)"; break;
+            case PHASE_PID:   phaseStr = "PID (23W)"; break;
             default: break;
         }
     }
     doc["heating_phase"] = phaseStr;
     
-    doc["icon_heater"] = _state.isHeaterOn;
-    doc["icon_cooling"] = (_state.isHeaterFanOn && _state.currentMode == MODE_IDLE);
+    doc["icon_heater_main"] = _state.isHeaterMainOn;
+    doc["icon_heater_aux1"] = _state.isHeaterAux1On;
+    doc["icon_heater_aux2"] = _state.isHeaterAux2On;
     doc["icon_fan_chamber"] = _state.isChamberFanOn;
-    // ================== POCZĄTEK ZMIANY v5.32b ==================
-    // doc["icon_fan_psu"] = _state.isPsuFanOn; // Usunięto
-    doc["icon_fan_vent"] = _state.isVentilationFanOn; // Dodano (na przyszłość)
-    // =================== KONIEC ZMIANY v5.32b ===================
+    doc["icon_fan_vent"] = _state.isVentilationFanOn; 
+    
     doc["ds0"] = _state.ds18b20_temps[0];
     doc["ds1"] = _state.ds18b20_temps[1];
     doc["ds2"] = _state.ds18b20_temps[2];
     doc["ds3"] = _state.ds18b20_temps[3];
     doc["ds4"] = _state.ds18b20_temps[4];
-    doc["pid_power"] = _state.pidOutput; // Teraz wysyła poziom mocy (0-3)
+    doc["pid_power"] = _state.pidOutput;
+    
     JsonArray spools = doc.createNestedArray("spools");
     for (int i=0; i<4; i++) {
         JsonObject spool = spools.createNestedObject();

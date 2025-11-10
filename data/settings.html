@@ -1,14 +1,13 @@
 <!--=================================================================-->
 <!-- Plik:          settings.html                              `     -->
-<!-- Wersja:        5.32b                                             -->       
-<!-- Data:          23.10.2025                                       -->
+<!-- Wersja:        5.35 final                                             -->       
+<!-- Data:          11.11.2025                                       -->
 <!-- Autor:         PPSerwis AIRSOFT & more                          -->
 <!-- Copyright (c) 2025 PPSerwis AIRSOFT & more                      -->
 <!-- Licencja:      MIT License (zobacz plik LICENSE w repozytorium) -->
 <!-- Opis Zmian:                                                     -->
 <!--  - [CHORE] Dodano informacje o prawach autorskich i licencji.   -->
 <!-- ================================================================-->
-
 <!DOCTYPE html>
 <html lang="pl">
 <head>
@@ -49,26 +48,33 @@
                         <input type="range" id="glcdContrast" name="glcdContrast" min="0" max="255" step="1">
                     </div>
                 </div>
-
+                
                 <div class="card">
                     <h2>Sterowanie Grzaniem</h2>
                      <div class="form-grid">
                         <label for="boostMaxTime_min">Boost - Czas Max (min):</label>
                         <input type="number" id="boostMaxTime_min" name="boostMaxTime_min" min="1" max="30">
-                        <label for="boostTempThreshold">Boost - Próg Temp. (°C):</label>
-                        <input type="number" id="boostTempThreshold" name="boostTempThreshold" min="30" max="60">
-                         <label for="boostPsuTempLimit">Boost - Limit PSU (°C):</label>
-                        <input type="number" id="boostPsuTempLimit" name="boostPsuTempLimit" min="30" max="60">
-                        <label for="rampPowerPercent">Rampa - Moc (%):</label>
-                        <input type="number" id="rampPowerPercent" name="rampPowerPercent" min="10" max="100">
+                        <label for="boostThresholdPercent">Boost - Próg (% Celu):</label>
+                        <input type="number" id="boostThresholdPercent" name="boostThresholdPercent" min="50" max="95">
+                        <label for="rampThresholdPercent">Rampa - Próg (% Celu):</label>
+                        <input type="number" id="rampThresholdPercent" name="rampThresholdPercent" min="50" max="99">
                     </div>
                 </div>
 
                 <div class="card">
-                    <h2>Nastawy PID</h2>
+                    <h2>Wentylacja Komory</h2>
+                     <div class="form-grid">
+                        <label for="ventilationInterval_min">Interwał (min):</label>
+                        <input type="number" id="ventilationInterval_min" name="ventilationInterval_min" min="1" max="60">
+                        <label for="ventilationDuration_sec">Czas trwania (sek):</label>
+                        <input type="number" id="ventilationDuration_sec" name="ventilationDuration_sec" min="10" max="300">
+                    </div>
+                </div>
+                <div class="card">
+                    <h2>Nastawy PID (dla Poziomu 1)</h2>
                     <div class="form-grid">
                         <label for="pid_kp">Kp (Wzmocnienie):</label>
-                        <input type="number" id="pid_kp" name="pid_kp" min="0" max="100" step="0.1">
+                        <input type="number" id="pid_kp" name="pid_kp" min="0" max="1000" step="0.1">
                         <label for="pid_ki">Ki (Całka):</label>
                         <input type="number" id="pid_ki" name="pid_ki" min="0" max="100" step="0.1">
                         <label for="pid_kd">Kd (Różniczka):</label>
@@ -77,12 +83,12 @@
                 </div>
 
                 <div class="card">
-                    <h2>Zasilacz</h2>
+                    <h2>Zasilacz (Monitoring)</h2>
                     <div class="form-grid">
                         <label for="psuOverheatLimit">Alarm Przegrzania (°C):</label>
                         <input type="number" id="psuOverheatLimit" name="psuOverheatLimit" min="45" max="70">
                     </div>
-                    </div>
+                </div>
 
                 <div class="form-actions">
                     <button type="submit" id="save-btn">Zapisz Ustawienia</button>
@@ -133,22 +139,23 @@
                 const response = await fetch('/get_settings');
                 if (!response.ok) throw new Error('Błąd pobierania ustawień');
                 const settings = await response.json();
-
+                
                 document.getElementById('customTemp').value = settings.customTemp;
                 document.getElementById('customHum').value = settings.customHum;
                 document.getElementById('soundsEnabled').checked = settings.soundsEnabled;
                 document.getElementById('glcdContrast').value = settings.glcdContrast;
                 document.getElementById('boostMaxTime_min').value = settings.boostMaxTime_min;
-                document.getElementById('boostTempThreshold').value = settings.boostTempThreshold;
-                document.getElementById('boostPsuTempLimit').value = settings.boostPsuTempLimit;
-                document.getElementById('rampPowerPercent').value = settings.rampPowerPercent;
+                // ================== POCZĄTEK ZMIANY v5.35 ==================
+                document.getElementById('boostThresholdPercent').value = settings.boostThresholdPercent;
+                document.getElementById('rampThresholdPercent').value = settings.rampThresholdPercent;
+                // =================== KONIEC ZMIANY v5.35 ===================
                 document.getElementById('pid_kp').value = settings.pid_kp;
                 document.getElementById('pid_ki').value = settings.pid_ki;
                 document.getElementById('pid_kd').value = settings.pid_kd;
-                // ================== POCZĄTEK ZMIANY v5.32b ==================
-                // Usunięto odwołania do psuFanOnTemp i psuFanOffHysteresis
-                // =================== KONIEC ZMIANY v5.32b ===================
                 document.getElementById('psuOverheatLimit').value = settings.psuOverheatLimit;
+
+                document.getElementById('ventilationInterval_min').value = settings.ventilationInterval_min;
+                document.getElementById('ventilationDuration_sec').value = settings.ventilationDuration_sec;
 
                 if (settings.spools) {
                     settings.spools.forEach((spool, i) => {

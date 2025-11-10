@@ -1,13 +1,15 @@
-/*--=================================================================-->
-<!-- Plik:          style.css                                        -->
-<!-- Wersja:        5.30                                             -->       
-<!-- Data:          17.10.2025                                       -->
+/*
+<!--=================================================================-->
+<!-- Plik:          style.css                              `     -->
+<!-- Wersja:        5.35 final                                            -->       
+<!-- Data:          11.11.2025                                       -->
 <!-- Autor:         PPSerwis AIRSOFT & more                          -->
 <!-- Copyright (c) 2025 PPSerwis AIRSOFT & more                      -->
 <!-- Licencja:      MIT License (zobacz plik LICENSE w repozytorium) -->
 <!-- Opis Zmian:                                                     -->
 <!--  - [CHORE] Dodano informacje o prawach autorskich i licencji.   -->
-<!-- ================================================================-*/
+<!-- ================================================================-->
+*/
 
 :root {
     --primary-color: #007BFF;
@@ -66,6 +68,7 @@ header h1 {
     background-color: #e9ecef;
 }
 
+/* --- Style Strony Ustawień --- */
 .form-grid, .form-grid-spools {
     display: grid;
     grid-template-columns: auto 1fr;
@@ -86,13 +89,21 @@ header h1 {
     font-weight: 500;
     text-align: right;
 }
-.form-grid input, .form-grid-spools select {
+.form-grid input, .form-grid input[type="number"], .form-grid-spools select {
     padding: 8px;
     border: 1px solid #ccc;
     border-radius: 4px;
     width: 100%;
     box-sizing: border-box;
+    -moz-appearance: textfield;
+    appearance: textfield;
 }
+.form-grid input[type=number]::-webkit-inner-spin-button, 
+.form-grid input[type=number]::-webkit-outer-spin-button { 
+  -webkit-appearance: none; 
+  margin: 0; 
+}
+
 .form-grid input[type="checkbox"] {
     width: auto;
     justify-self: start;
@@ -125,6 +136,8 @@ header h1 {
     font-weight: bold;
     color: var(--start-color);
 }
+/* --- Koniec Styli Strony Ustawień --- */
+
 
 .card {
     background-color: var(--card-bg-color);
@@ -163,9 +176,9 @@ header h1 {
     display: flex;
     justify-content: center;
     align-items: center;
-    gap: 1.5em;
+    gap: 1em;
     margin-bottom: 1em;
-    font-size: 2em;
+    font-size: 1.8em;
 }
 
 .icon {
@@ -177,6 +190,10 @@ header h1 {
 .icon.active {
     opacity: 1;
 }
+
+#icon-heater-main.active { color: #ff6d00; }
+#icon-heater-aux1.active { color: #ffa000; }
+#icon-heater-aux2.active { color: #ffa000; }
 
 .phase-status {
     text-align: center;
@@ -201,6 +218,30 @@ header h1 {
     cursor: pointer;
     background-color: #fff;
 }
+
+/* ================== POCZĄTEK ZMIANY v5.35 ================== */
+.time-input-wrapper {
+    display: none; /* Domyślnie ukryte */
+    grid-column: span 2; /* Zajmuje całą szerokość */
+    grid-template-columns: auto 1fr;
+    gap: 0.8em;
+    align-items: center;
+}
+.time-input-wrapper label {
+    font-size: 0.9em;
+    text-align: right;
+}
+.time-input-wrapper input {
+    padding: 0.7em 1em; 
+    font-size: 0.9em; 
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    width: 100%;
+    box-sizing: border-box;
+    -moz-appearance: textfield;
+    appearance: textfield;
+}
+/* =================== KONIEC ZMIANY v5.35 =================== */
 
 .controls button {
     color: white;

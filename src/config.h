@@ -1,20 +1,25 @@
 // =================================================================
-// Plik:          config.h
-// Wersja:        5.32
-// Data:          23.10.2025
-// Autor:         PPSerwis AIRSOFT & more
+// Plik:         config.h
+// Wersja:       5.35 final
+// Data:         11.11.2025
+// Autor:        PPSerwis AIRSOFT & more (modyfikacja: Gemini)
 // Copyright (c) 2025 PPSerwis AIRSOFT & more
-// Licencja:      MIT License (zobacz plik LICENSE w repozytorium)
+// Licencja:     MIT License (zobacz plik LICENSE w repozytorium)
 // Opis Zmian:
-//  - [REFACTOR] Zmiana pinów grzałek na 3x 230V.
-//  - [REFACTOR] Usunięto definicję pinu wentylatora grzałki (19).
-//  - Zaktualizowano wersję FW_VERSION.
+// - [TASK] Wydłużono INTERACTIVE_DISPLAY_TIMEOUT do 180000 (3 min).
+// - [TASK] Zastąpiono stałe progów temp. stałymi progów procentowych.
+// - [CHORE] Usunięto DEFAULT_BOOST_TEMP_THRESHOLD i _PSU_TEMP_LIMIT.
+// - [CHORE] Usunięto DEFAULT_RAMP_POWER_LEVEL (wartość hardcoded).
+// - [CHORE] Aktualizacja FW_VERSION.
 // =================================================================
 #ifndef CONFIG_H
 #define CONFIG_H
 #include <DallasTemperature.h>
 
-#define FW_VERSION "v5.32"
+// ================== POCZĄTEK ZMIANY v5.35 ==================
+#define FW_VERSION "v5.35"
+// =================== KONIEC ZMIANY v5.35 ===================
+
 #define I2C_SDA_PIN 21
 #define I2C_SCL_PIN 22
 #define GLCD_CLK_PIN   33
@@ -24,18 +29,15 @@
 #define GLCD_RESET_PIN 2
 #define GLCD_BACKLIGHT_PIN 17
 
-// ================== POCZĄTEK ZMIANY v5.32 ==================
-#define HEATER_PIN_MAIN 23 // Grzałka 1 (np. do PID)
-#define HEATER_PIN_AUX1 5  // Grzałka 2 (Boost)
-#define HEATER_PIN_AUX2 19 // Grzałka 3 (Boost)
-// #define HEATER_FAN_PIN 19 // Usunięto
-// =================== KONIEC ZMIANY v5.32 ===================
+#define HEATER_PIN_MAIN 23 // Grzałka 1 (Środek, 23W)
+#define HEATER_PIN_AUX1 27 // Grzałka 2 (Bok 1, 23W)
+#define HEATER_PIN_AUX2 19 // Grzałka 3 (Bok 2, 23W)
 
-#define CHAMBER_FAN_PIN 26
-#define VENTILATION_FAN_PIN 27 // Przyszły wentylator wentylacji
+#define CHAMBER_FAN_PIN 26 // Wentylator(y) komory
+#define VENTILATION_FAN_PIN 5 // NOWY Wentylator wentylacji
+
 #define HEATER_LED_PIN 13
 #define BUZZER_PIN 18
-#define DHT_PIN 5 // Już nieużywany dla DHT, ale użyty dla grzałki
 #define ONE_WIRE_BUS 4
 #define ENCODER_A_PIN  12
 #define ENCODER_B_PIN  14
@@ -51,9 +53,10 @@ const DeviceAddress SENSOR_ADDRESS_FRONT_RIGHT = {0x28, 0x5B, 0x18, 0xBC, 0x00, 
 #define SENSOR_READ_INTERVAL 1000
 #define LCD_STATUS_UPDATE_INTERVAL 500
 #define STATUS_SCREEN_ROTATION_INTERVAL 7000
-#define INTERACTIVE_DISPLAY_TIMEOUT 60000
+// ================== POCZĄTEK ZMIANY v5.35 ==================
+#define INTERACTIVE_DISPLAY_TIMEOUT 180000 // 3 minuty (było 60000)
+// =================== KONIEC ZMIANY v5.35 ===================
 #define STARTUP_SCREEN_DELAY 3000
-// #define HEATER_FAN_COOLDOWN_TIME 30000 // Usunięto
 #define LONG_PRESS_DELAY 1500
 #define BUTTON_DEBOUNCE_DELAY 50
 #define OVERHEAT_TEMP_LIMIT 75.0
@@ -62,17 +65,26 @@ const DeviceAddress SENSOR_ADDRESS_FRONT_RIGHT = {0x28, 0x5B, 0x18, 0xBC, 0x00, 
 #define CHAMBER_DELTA_ON 2.0
 #define CHAMBER_DELTA_OFF 1.0
 
-#define PSU_OVERHEAT_LIMIT_DEFAULT 55.0 // Pozostawiamy monitoring PSU
+#define PSU_OVERHEAT_LIMIT_DEFAULT 55.0
 
 #define GLCD_CONTRAST_DEFAULT 50
 
-#define PID_KP_DEFAULT 4.0  // Będą wymagały dostrojenia do sterowania ON/OFF!
-#define PID_KI_DEFAULT 0.2
-#define PID_KD_DEFAULT 1.0
+#define PID_KP_DEFAULT 100.0 // Wartości dla sterowania ON/OFF
+#define PID_KI_DEFAULT 0.1
+#define PID_KD_DEFAULT 0.1
 
 #define DEFAULT_BOOST_TIME_MIN 5
-#define DEFAULT_BOOST_TEMP_THRESHOLD 35.0
-#define DEFAULT_BOOST_PSU_TEMP_LIMIT 50.0
-#define DEFAULT_RAMP_POWER_PERCENT 70 // Ta zmienna może stać się poziomem mocy (np. 2 dla 46W)
+
+// ================== POCZĄTEK ZMIANY v5.35 ==================
+// Usunięto stare progi, dodano nowe (procentowe)
+#define DEFAULT_BOOST_THRESHOLD_PERCENT 80 // Próg % temp. celu dla wyjścia z Boost
+#define DEFAULT_RAMP_THRESHOLD_PERCENT 95  // Próg % temp. celu dla wyjścia z Ramp
+// Usunięto DEFAULT_BOOST_TEMP_THRESHOLD
+// Usunięto DEFAULT_BOOST_PSU_TEMP_LIMIT
+// Usunięto DEFAULT_RAMP_POWER_LEVEL (hardcoded jako Poziom 2)
+// =================== KONIEC ZMIANY v5.35 ===================
+
+#define DEFAULT_VENT_INTERVAL_MIN 15 // Domyślny interwał wentylacji (w minutach)
+#define DEFAULT_VENT_DURATION_SEC 60 // Domyślny czas wentylacji (w sekundach)
 
 #endif
